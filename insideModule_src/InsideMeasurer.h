@@ -3,16 +3,13 @@
 #include "Measurer.h"
 #include <DHT.h>
 
-class InsideMeasurer : Measurer {
+class InsideMeasurer : public Measurer {
 public:
-InsideMeasurer(DHT* dhtSensor);
+  InsideMeasurer(DHT* dhtSensor);
+  ~InsideMeasurer();
   bool readValues();
-  const char* getOutput();
-  float getTemperature();
-  float getHumidity();
 private:
   DHT* dhtSensor;
-  
 };
 
 #endif

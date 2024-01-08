@@ -10,7 +10,7 @@ public:
   uint8_t* getPacket();
 private:
   RH_ASK* driver;
-  char packet[RH_ASK_MAX_MESSAGE_LEN] = "\0";
+  char packet[40] = "\0";     //
   const int BUFFER_SIZE = 7;  //buffer used for converting float values to strings
   int charsCount = 7;
 };

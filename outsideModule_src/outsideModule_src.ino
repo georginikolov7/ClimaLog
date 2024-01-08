@@ -16,7 +16,7 @@
 #include "Radio.h"
 
 //Needed constants:
-#define DHTPIN 4             //digital pin for Temp/Hum sensor
+#define DHTPIN 2            //digital pin for Temp/Hum sensor
 #define DHTSENSORTYPE DHT22  //type of ht sensor used
 #define SNOWMETER_HIGH_ACCURACY
 #define USESERIAL
