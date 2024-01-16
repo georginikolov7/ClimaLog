@@ -68,7 +68,7 @@ void setup() {
 #ifdef USESERIAL
   Serial.println(F("Setup is complete"));
 #endif
-  delay(1000);  //setup delay
+  delay(3000);  //setup delay
 }
 
 void loop() {

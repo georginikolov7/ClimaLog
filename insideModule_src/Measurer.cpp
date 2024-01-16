@@ -9,7 +9,7 @@ const char* Measurer::getOutput() {
   char humString[3];  //2 digits + \0 delimiter total of 3 chars
   dtostrf(humidity, 2, 0, humString);
 
-  sprintf(output, "T: %s C\nHum: %s %%", tempString, humString);
+  sprintf(output, "T %s C\nHum %s %%", tempString, humString);
   return output;
 }
 float Measurer::getTemperature() {

@@ -1,17 +1,10 @@
+#include <stdint.h>
 #ifndef Radio_h
 #define Radio_h
 #include <RH_ASK.h>
 class Radio {
 public:
-  Radio(RH_ASK* driver);
-  void init();
-  bool appendPacketFloat(float value);
-  bool sendPacket();
-  uint8_t* getPacket();
-private:
-  RH_ASK* driver;
-  char packet[40] = "\0";     //
-  const int BUFFER_SIZE = 7;  //buffer used for converting float values to strings
-  int charsCount = 7;
+  virtual bool send(uint32_t packet, uint8_t len);
+  virtual bool receive(uint32_t packet, uint8_t len);
 };
 #endif

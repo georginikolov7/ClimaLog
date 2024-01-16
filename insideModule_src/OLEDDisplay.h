@@ -10,6 +10,8 @@ public:
     : Adafruit_SSD1306(w, h, &Wire, rst_pin, clkDuring, clkAfter){};
   ~OLEDDisplay() {}
   void writeText(const char* text) override;
+  void writeAt(int row, const char* text) override;
+  void resetDisplay() override;
 };
 
 #endif

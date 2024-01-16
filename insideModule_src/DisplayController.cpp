@@ -11,7 +11,6 @@ void DisplayController::changeDisplayMode() {
 }
 void DisplayController::displayData() {
   char output[50] = "\0";
-
   if (measurers[iterator]->getLocation() == 1) {
     strcat(output, "    IN\n");
   } else {
