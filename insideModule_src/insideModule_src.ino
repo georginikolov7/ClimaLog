@@ -24,45 +24,43 @@
 #include "ValueSelector.h"
 #define USESERIAL  //to use serial monitor for debugging
 
-#define EEPROM_SIZE 1  //we only need to store 1 byte - int mountingHeight
 #define DEFAULT_MOUNTING_HEIGHT 100
-#define rxPin 13
-#define txPin 14
-//Defining input pins:
+#define rxPin 13  //SPI receive
+#define txPin 14  //SPI send
+
 #define INSIDE_DHT_TYPE DHT22
-#define INSIDE_DHT_PIN 25
+#define INSIDE_DHT_PIN 25  //DHT22 on pin 25
 #define SET_BUTTON_PIN 33
 #define DISPLAY_BUTTON_PIN 32
 
 //display parameters:
-#define I2C_DATA 26
-#define I2C_CLK 27
-#define WIDTH 128
-#define HEIGHT 64
+#define I2C_DATA 26                         //pin for data
+#define I2C_CLK 27                          //pin for clock
+#define WIDTH 128                           //width of display in px
+#define HEIGHT 64                           //height of display i px
 #define DISPLAY_ADDRESS 0x3c                //I2C address for OLED display
 OLEDDisplay display(WIDTH, HEIGHT, &Wire);  //OLED display object
-
-//create object instances:
-DHT insideDHT(INSIDE_DHT_PIN, INSIDE_DHT_TYPE);  //dht22 temp/hum sensor for inside
-RFRadio driver(2000, rxPin, txPin, 0);           //radio driver RH_ASK
-Radio* radioPtr = &driver;
-InsideMeasurer insideMeasurer(&insideDHT);  //create instance for measuring temp/humidity inside
-OutsideMeasurer outsideMeasurer(radioPtr);  //create instance for receiving data from radio module (outside data)
 
 //Button objects:
 Button setButton(SET_BUTTON_PIN);
 Button displayButton(DISPLAY_BUTTON_PIN);
 
+DHT insideDHT(INSIDE_DHT_PIN, INSIDE_DHT_TYPE);  //dht22 temp/hum sensor for inside
+RFRadio driver(2000, rxPin, txPin, 0);           //radio driver RH_ASK
+
+#define OUTSIDE_MODULES_COUNT 1
+InsideMeasurer insideMeasurer(&insideDHT);    //create instance for measuring temp/humidity inside
+OutsideMeasurer outsideMeasurer(&driver, 1);  //create instance for receiving data from radio module (outside data)
 
 //Measurers poiters array to pass to displayController:
-
 Measurer* measurers[2] = {
   &insideMeasurer,
   &outsideMeasurer
 };
-Measurer* outsideMeasurers[1] = {
+OutsideMeasurer* outsideMeasurers[1] = {
   &outsideMeasurer
 };
+
 //Display controller object, used for toggling display mode
 DisplayController displayController(&display, measurers, 2);
 
@@ -88,32 +86,29 @@ void setup() {
 #endif
 
   //EEPROM used to save mounting height
-  EEPROM.begin(EEPROM_SIZE);
+  EEPROM.begin(OUTSIDE_MODULES_COUNT);  //we need to keep one int value for every outside module
 
-  //Set mounting height:
-  int heightFromFlash = EEPROM.read(0);
-  if (heightFromFlash == 255) {
-    //height hasn't been set => set to default
-    outsideMeasurer.setMountingHeight(DEFAULT_MOUNTING_HEIGHT);
-  } else {
-    outsideMeasurer.setMountingHeight(heightFromFlash);
+  //Set mounting heights on each outside module:
+  for (int i = 0; i < OUTSIDE_MODULES_COUNT; i++) {
+    int heightFromFlash = EEPROM.read(i);
+    if (heightFromFlash == 255) {
+      //height hasn't been set yet:
+      outsideMeasurers[i]->setMountingHeight(DEFAULT_MOUNTING_HEIGHT);
+    } else {
+      //set height from flash:
+      outsideMeasurers[i]->setMountingHeight(heightFromFlash);
+    }
   }
-#ifdef USESERIAL
-  Serial.printf("Mounting height: %i\n", outsideMeasurer.getMountingHeight());
-#endif
 
-  insideDHT.begin();
-  delay(200);  //time to setup DHT
+  insideDHT.begin();  //initialize the inside DHT
+  delay(200);         //time to setup DHT
   insideMeasurer.readValues();
 
   //Initialize I2C comm and display object:
   Wire.begin(I2C_DATA, I2C_CLK, 100000);
   display.begin(SSD1306_SWITCHCAPVCC, DISPLAY_ADDRESS);
-
-  display.setTextColor(WHITE);
-  display.setTextSize(2);
-  delay(50);
-  display.clearDisplay();
+  //default setup for display:
+  display.setupDisplay();
   displayController.displayData();
 
   if (!driver.init()) {
@@ -121,7 +116,7 @@ void setup() {
     Serial.println(F("COULD NOT INIT RADIO DRIVER!"));
 #endif
   }
-
+  //Attach interrupts for buttons:
   attachInterrupt(SET_BUTTON_PIN, ISR_SET_BUTTON, CHANGE);
   attachInterrupt(DISPLAY_BUTTON_PIN, ISR_DISPLAY_BUTTON, CHANGE);
 }
@@ -133,29 +128,40 @@ void loop() {
     Serial.println(F("Processed data correctly"));
 #endif
     if (outsideMeasurer.readValues()) {
-
       Serial.println();
       delay(5);
       displayController.displayData();
     }
   }
-  if (setButton.isLongPressed()) {
-    //Enter outsideMeasurer heightSetup:
 
-    ValueSelector vs(outsideMeasurer.getMinHeight(), outsideMeasurer.getMaxHeight(), 5, &display, &setButton, "height", "cm");
-    outsideMeasurer.setMountingHeight(vs.selectValue());
-    displayController.displayData();
-    Serial.println(outsideMeasurer.getMountingHeight());
+  if (setButton.isLongPressed()) {
+    //Enter height setup:
+    heightSetup();
   }
+
   if (millis() - lastInsideReadTime > INSIDE_READ_INTERVAL) {
+    //read inside values:
     insideMeasurer.readValues();
     delay(5);
-    displayController.displayData();
+    displayController.displayData();  //if inside module is showing on display => update values
   }
+
   if (setButton.isShortPressed()) {
     displayController.changeDisplayMode();
     displayController.displayData();
     Serial.println(F("CHANGED MODE"));
     Serial.println(displayController.getIterator());
   }
+}
+
+void heightSetup() {
+  ValueSelector outsideModuleSelector(1, OUTSIDE_MODULES_COUNT, 1, &display, &setButton, "module");  //create selector instance to select the index of the outside module we want to change the height of
+  int moduleIndex = outsideModuleSelector.selectValue() - 1;                                         //index is -1, because it starts from 0
+  //Create value selector to select height:
+  ValueSelector vs(outsideMeasurers[moduleIndex]->getMinHeight(), outsideMeasurers[moduleIndex]->getMaxHeight(), 5, &display, &setButton, "height", "cm");
+  outsideMeasurers[moduleIndex]->setMountingHeight(vs.selectValue());  //set the new height
+  displayController.displayData();                                     //display the standary display output
+#ifdef USESERIAL
+  Serial.printf("New height: %i", outsideMeasurers[moduleIndex]->getMountingHeight());  //for debugging only
+#endif
 }

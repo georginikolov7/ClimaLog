@@ -21,6 +21,9 @@ float Measurer::getHumidity() {
 bool Measurer::getLocation() {
   return isInside;
 }
+int Measurer::getIndex() {
+  return index;
+}
 Measurer::~Measurer() {
   delete[] output;
 }

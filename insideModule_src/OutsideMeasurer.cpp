@@ -1,6 +1,7 @@
 #include "OutsideMeasurer.h"
-OutsideMeasurer::OutsideMeasurer(Radio *radio) {
+OutsideMeasurer::OutsideMeasurer(Radio *radio, int index) {
   this->radio = radio;
+  this->index = index;
   isInside = 0;
 }
 OutsideMeasurer::~OutsideMeasurer() {

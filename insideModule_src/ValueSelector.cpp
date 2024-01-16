@@ -51,7 +51,7 @@ int ValueSelector::selectValue() {
     }
   }
   char text[50] = "\0";
-  sprintf(text, "New %s\n   %i %s", keyword, currentValue, measureUnit);
+  sprintf(text, "Selected %s\n   %i %s", keyword, currentValue, measureUnit);
   display->writeText(text);
   delay(2500);
 

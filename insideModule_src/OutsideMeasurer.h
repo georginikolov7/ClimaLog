@@ -8,7 +8,7 @@
 #include "Display.h"
 class OutsideMeasurer : public Measurer {
 public:
-  OutsideMeasurer(Radio* radio);
+  OutsideMeasurer(Radio* radio, int index);
   ~OutsideMeasurer();
   void setMountingHeight(int newHeight);
   void heightSetup(Button* setButton, Display* display);

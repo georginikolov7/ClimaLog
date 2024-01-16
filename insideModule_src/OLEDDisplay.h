@@ -12,6 +12,7 @@ public:
   void writeText(const char* text) override;
   void writeAt(int row, const char* text) override;
   void resetDisplay() override;
+  void setupDisplay();
 };
 
 #endif

@@ -15,3 +15,9 @@ void OLEDDisplay::resetDisplay() {
   Adafruit_SSD1306::clearDisplay();
   Adafruit_SSD1306::display();
 }
+void OLEDDisplay::setupDisplay() {
+  Adafruit_SSD1306::clearDisplay();
+  Adafruit_SSD1306::setTextColor(WHITE);
+  Adafruit_SSD1306::setTextSize(2);
+  Adafruit_SSD1306::setCursor(0, 0);
+}

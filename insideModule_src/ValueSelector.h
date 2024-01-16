@@ -6,7 +6,7 @@
 
 class ValueSelector {
 public:
-  ValueSelector(int minValue, int maxValue, int incrementValue, Display* display, Button* setButton, const char* keyword, const char* measureUnit);
+  ValueSelector(int minValue, int maxValue, int incrementValue, Display* display, Button* setButton, const char* keyword = "value", const char* measureUnit = "");
   ~ValueSelector();
   int selectValue();
 
@@ -15,7 +15,7 @@ private:
   int minValue;
   int maxValue;
   int incrementValue;
-  
+
   Display* display;
   Button* setButton;
 
