@@ -6,8 +6,7 @@ InsideMeasurer::InsideMeasurer(DHT* dhtSensor) {
 };
 InsideMeasurer::~InsideMeasurer() {
 }
-bool InsideMeasurer::readValues() {
+void InsideMeasurer::readValues() {
   temperature = dhtSensor->readTemperature();
   humidity = dhtSensor->readHumidity();
-  return true;
 }

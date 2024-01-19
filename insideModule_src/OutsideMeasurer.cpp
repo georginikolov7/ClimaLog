@@ -1,5 +1,5 @@
 #include "OutsideMeasurer.h"
-OutsideMeasurer::OutsideMeasurer(Radio *radio, int index) {
+OutsideMeasurer::OutsideMeasurer(RF24 *radio, int index) {
   this->radio = radio;
   this->index = index;
   isInside = 0;
@@ -8,32 +8,33 @@ OutsideMeasurer::~OutsideMeasurer() {
   delete[] outsideOutput;
 }
 
-bool OutsideMeasurer::readValues() {
-  float measuredDistance = 0;
+void OutsideMeasurer::readValues() {
 
-  uint8_t receiveBuffer[RH_ASK_MAX_MESSAGE_LEN];
-  uint8_t len = sizeof(receiveBuffer);
+  ReceiveBuffer buffer;
+  radio->read(&buffer, sizeof(buffer));
+  this->temperature = buffer.temperature;
+  this->humidity = buffer.humidity;
+  int snowDepth = mountingHeight - buffer.measuredDistance;
+  snowDepth = ((snowDepth + 5 / 2) / 5) * 5;  //round snowDepth to closest multiple of 5
+  this->snowDepth = snowDepth;
+  this->batteryLevel = buffer.batteryLevel;
 
-  radio->receive(receiveBuffer, &len);
-  Serial.println((char *)receiveBuffer);  //for debugging
-  try {
-    char *token;
-    char *rest = (char *)receiveBuffer;
-    token = strtok_r(rest, ";", &rest);
-    temperature = atof(token);
-    token = strtok_r(rest, ";", &rest);
-    humidity = atof(token);
-    token = strtok_r(rest, ";", &rest);
-    measuredDistance = atof(token);
-    snowDepth = mountingHeight - measuredDistance;
+  // try {
+  //   char *token;
+  //   char *rest = (char *)receiveBuffer;
+  //   token = strtok_r(rest, ";", &rest);
+  //   temperature = atof(token);
+  //   token = strtok_r(rest, ";", &rest);
+  //   humidity = atof(token);
+  //   token = strtok_r(rest, ";", &rest);
+  //   measuredDistance = atof(token);
+  //   snowDepth = mountingHeight - measuredDistance;
 
-    snowDepth = ((snowDepth + 5 / 2) / 5) * 5;  //round snowDepth to closest multiple of 5
-  } catch (...) {
-    //Received buffer's format is incorrect => dump that packet
-    Serial.println("EBASI MAMATA");
-    return false;
-  }
-  return true;
+  //   snowDepth = ((snowDepth + 5 / 2) / 5) * 5;  //round snowDepth to closest multiple of 5
+  // } catch (...) {
+  //   //Received buffer's format is incorrect => dump that packet
+  //   Serial.println("EBASI MAMATA");
+  //   return false;
 }
 const char *OutsideMeasurer::getOutput() {
   delete[] outsideOutput;

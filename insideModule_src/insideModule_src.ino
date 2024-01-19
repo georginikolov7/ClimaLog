@@ -11,52 +11,57 @@
 #pragma GCC optimize("-fexceptions")  //enables exception handling
 
 //Adding necessary libraries:
+#include <Arduino.h>
 #include <EEPROM.h>  //used to store settings when power goes down (mounting height of outside module)
 #include <DHT.h>
-#include <Arduino.h>
+#include <SPI.h>  //used for communicating with nRF24 radio
+#include <RF24.h>
+#include <nRF24L01.h>
+#include <printf.h>  //for printing rf24 details (debugging)
 #include "InsideMeasurer.h"
 #include "OutsideMeasurer.h"
-#include "RFRadio.h"
-#include <SPI.h>
 #include "Button.h"
 #include "OLEDDisplay.h"
 #include "DisplayController.h"
 #include "ValueSelector.h"
-#define USESERIAL  //to use serial monitor for debugging
 
-#define DEFAULT_MOUNTING_HEIGHT 100
-#define rxPin 13  //SPI receive
-#define txPin 14  //SPI send
+#define USESERIAL  // uncomment to use serial monitor for debugging
+
+#define CE_PIN 17                  //SPI chip enable
+#define CS_PIN 5                   //SPI chip select pin
+uint8_t readAddress[6] = "NODE1";  //address for outside module 1
+RF24 radio(CE_PIN, CS_PIN);
 
 #define INSIDE_DHT_TYPE DHT22
-#define INSIDE_DHT_PIN 25  //DHT22 on pin 25
-#define SET_BUTTON_PIN 33
-#define DISPLAY_BUTTON_PIN 32
+#define INSIDE_DHT_PIN 4  //DHT22 pin
 
-//display parameters:
-#define I2C_DATA 26                         //pin for data
-#define I2C_CLK 27                          //pin for clock
+//display pins and dimensions:
+#define I2C_DATA 21                         //I2C pin for data
+#define I2C_CLK 22                          //I2C pin for clock
 #define WIDTH 128                           //width of display in px
-#define HEIGHT 64                           //height of display i px
+#define HEIGHT 64                           //height of display in px
 #define DISPLAY_ADDRESS 0x3c                //I2C address for OLED display
 OLEDDisplay display(WIDTH, HEIGHT, &Wire);  //OLED display object
 
 //Button objects:
+#define SET_BUTTON_PIN 2
+#define DISPLAY_BUTTON_PIN 32
 Button setButton(SET_BUTTON_PIN);
 Button displayButton(DISPLAY_BUTTON_PIN);
 
 DHT insideDHT(INSIDE_DHT_PIN, INSIDE_DHT_TYPE);  //dht22 temp/hum sensor for inside
-RFRadio driver(2000, rxPin, txPin, 0);           //radio driver RH_ASK
 
+#define DEFAULT_MOUNTING_HEIGHT 100  //modules work best when mounted at 1 meter (but can be changed using the buttons)
 #define OUTSIDE_MODULES_COUNT 1
-InsideMeasurer insideMeasurer(&insideDHT);    //create instance for measuring temp/humidity inside
-OutsideMeasurer outsideMeasurer(&driver, 1);  //create instance for receiving data from radio module (outside data)
+InsideMeasurer insideMeasurer(&insideDHT);   //create instance for measuring temp/humidity inside
+OutsideMeasurer outsideMeasurer(&radio, 1);  //create instance for receiving data from radio module (outside data)
 
 //Measurers poiters array to pass to displayController:
 Measurer* measurers[2] = {
   &insideMeasurer,
   &outsideMeasurer
 };
+//Outside measurer pointers used for change height function
 OutsideMeasurer* outsideMeasurers[1] = {
   &outsideMeasurer
 };
@@ -84,7 +89,19 @@ void setup() {
   while (!Serial) {
   }
 #endif
-
+  // SPISettings spiSettings(2000000, MSBFIRST, SPI_MODE0);  //lower SPI frequency to 4MHZ so it works with nrf24
+  // SPI.beginTransaction(spiSettings);
+  // Serial.println("HELLO?");
+  SPI.begin();
+  if (!radio.begin()) {
+#ifdef USESERIAL
+    Serial.println(F("Could not initialize RF24 module!"));
+    while(true){
+      
+    }
+#endif
+  }
+  setupRadio();
   //EEPROM used to save mounting height
   EEPROM.begin(OUTSIDE_MODULES_COUNT);  //we need to keep one int value for every outside module
 
@@ -111,26 +128,26 @@ void setup() {
   display.setupDisplay();
   displayController.displayData();
 
-  if (!driver.init()) {
-#ifdef USESERIAL
-    Serial.println(F("COULD NOT INIT RADIO DRIVER!"));
-#endif
-  }
+
   //Attach interrupts for buttons:
   attachInterrupt(SET_BUTTON_PIN, ISR_SET_BUTTON, CHANGE);
   attachInterrupt(DISPLAY_BUTTON_PIN, ISR_DISPLAY_BUTTON, CHANGE);
+
+#ifdef USESERIAL
+  Serial.println(F("Setup is complete!"));
+#endif
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  if (driver.available()) {
+  for (int i = 1; i <= OUTSIDE_MODULES_COUNT; i++) {
+    if (radio.available((uint8_t*)i)) {
+      //Pipe number of radio's node1 matches the index of outside measurers in the array
+      //But pipes start from 1 indeces from 0
+      outsideMeasurers[i - 1]->readValues();
 #ifdef USESERIAL
-    Serial.println(F("Processed data correctly"));
+      Serial.printf("Received data from outside module %i", i);  //for debugging
 #endif
-    if (outsideMeasurer.readValues()) {
-      Serial.println();
-      delay(5);
-      displayController.displayData();
     }
   }
 
@@ -163,5 +180,15 @@ void heightSetup() {
   displayController.displayData();                                     //display the standary display output
 #ifdef USESERIAL
   Serial.printf("New height: %i", outsideMeasurers[moduleIndex]->getMountingHeight());  //for debugging only
+#endif
+}
+void setupRadio() {
+  for (int i = 1; i <= OUTSIDE_MODULES_COUNT; i++) {
+    radio.openReadingPipe(i, readAddress);
+    radio.setDataRate(RF24_250KBPS);
+    radio.setPALevel(RF24_PA_LOW);
+  }
+#ifdef USESERIAL
+  radio.printPrettyDetails();  //for debugging
 #endif
 }

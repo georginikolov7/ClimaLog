@@ -4,7 +4,7 @@
 #include <DHT.h>
 class Measurer {
 public:
-  virtual bool readValues() = 0;
+  virtual void readValues() = 0;
   virtual const char* getOutput();  //returns formatted string to display on OLED
   float getTemperature();
   float getHumidity();

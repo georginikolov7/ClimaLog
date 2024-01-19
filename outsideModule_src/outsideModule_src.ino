@@ -10,47 +10,60 @@
 #include <LowPower.h>  //include sleep library
 #include "VL53L0X.h"   //include ToF distance sensor library
 #include <Wire.h>      //used for I2C communication with distance sensor
-#include <RH_ASK.h>    // include the RadioHead library for the 433 Mhz transmitter
-#include <SPI.h>       //include dependant SPI library
 #include <DHT.h>       //include dht library for temp/hum sensor
-#include "Radio.h"
-
-//Needed constants:
-#define DHTPIN 2            //digital pin for Temp/Hum sensor
-#define DHTSENSORTYPE DHT22  //type of ht sensor used
-#define SNOWMETER_HIGH_ACCURACY
+#include <SPI.h>       //include dependant SPI library
+#include <RF24.h>
+#include <nRF24L01.h>
+#include <printf.h>  //for printing rf24 details (debugging)
 #define USESERIAL
 #define SLEEPTIME_MILLISECONDS 300000  //define the sleep time of 5 minute(s)
-const int DISTANCE_OFFSET = -3;        //when measuring distance to snow, sensor tends to measure 3cm more than actual
+
+//Needed constants:
+#define DHTPIN 2             //digital pin for Temp/Hum sensor
+#define DHTSENSORTYPE DHT22  //type of ht sensor used
+
+#define SNOWMETER_HIGH_ACCURACY
+const int DISTANCE_OFFSET = -3;  //when measuring distance to snow, sensor tends to measure 3cm more than actual
 
 // Initialize instances of all classes:
 VL53L0X snowMeter;
 
 DHT dht22(DHTPIN, DHTSENSORTYPE);
 
-RH_ASK driver;
-Radio radio(&driver);
+#define CE_PIN 7
+#define CS_PIN 8
+uint8_t readAddress[6] = "NODE1";
+uint8_t writeAddress[6] = "NODE2";
+RF24 radio;
 
+//Battery level indicator:
+#define VBAT_PIN A0
+#define K_BATTERY 1.8  //y -> Voltage battery; x -> voltage GPIO
+#define k_GPIO 0.005   //y- voltage at GPIO; x -> analog value
+#define VBAT_MIN 6     //minimum volatage of battery
+#define VBAT_MAX 8.4   //maximum voltage of battery
 //Sensor values:
-float temperature = 0;
-float humidity = 0;
-float distance = 0;
-
+struct RadioPacket {
+  float temperature = 0;  //measured temperature in celsius
+  int humidity = 0;       //measured hum in %
+  float distance = 0;     //measured distance in cm
+  int batteryLevel = 0;   //sends current battery %
+};
 int packetsSent = 0;
 
+RadioPacket radioPacket;
 
 void setup() {
   // put your setup code here, to run once:
 
 #ifdef USESERIAL
+  printf_begin();      //printf used by nrf24
   Serial.begin(9600);  //start serial monitor
   while (!Serial) {
     delay(1);
   }
 #endif
-
-  Wire.begin();
-  radio.init();  //initialize the custom radio class
+  Wire.begin();  //start I2C comms
   snowMeter.setTimeout(500);
   if (!snowMeter.init()) {
 #ifdef USESERIAL
@@ -65,6 +78,22 @@ void setup() {
 
   dht22.begin();  //begin the temp/hum sensor
 
+
+  if (!radio.begin(CE_PIN, CS_PIN)) {
+#ifdef USESERIAL
+    throwErrorOnSerial("ERROR! COULD NOT INITIALIZE RF24 radio");
+#endif
+  }
+  radio.setPayloadSize(sizeof(radioPacket));
+  radio.setDataRate(RF24_250KBPS);
+  radio.setPALevel(RF24_PA_LOW);
+  radio.openWritingPipe(writeAddress);
+  radio.stopListening();
+  radio.setAutoAck(false);
+  radio.printPrettyDetails();  //for debugging
+
+  //Set analog pin for VBAT as input:
+  pinMode(A0, INPUT);
 #ifdef USESERIAL
   Serial.println(F("Setup is complete"));
 #endif
@@ -73,25 +102,23 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+  radio.powerUp();  //leave power saving mode of radio
   readSensorValues();
-  appendValuesToRadio();
-  bool isSent = radio.sendPacket();
-  if (isSent) {
-    packetsSent++;
-  }
-//PRINT ON SERIAL FOR DEBUGGING PURPOSES:
+  readBatteryPercentage();
+  radio.stopListening();                                         //set radio in Tx mode
+  bool report = radio.write(&radioPacket, sizeof(radioPacket));  //sent package
+  Serial.println(report);
+  if (report) {
 #ifdef USESERIAL
-  uint8_t* buffer = radio.getPacket();
-  Serial.print("Buffer: ");
-  Serial.println((char*)buffer);
-  Serial.print("Send state: ");
-  Serial.println(isSent);
-  Serial.print("Packets sent: ");
-  Serial.println(packetsSent);
+    Serial.println("Packet sent successfully!");
 #endif
-  delay(200);  //delay before sleeping to prevent unpredictable behaviour
+  }
+
+  delay(200);         //delay before sleeping to prevent unpredictable behaviour
+  radio.powerDown();  //enter power saving mode of radio
   LowPower.longPowerDown(SLEEPTIME_MILLISECONDS);
 }
+
 
 
 // @brief error handling function for debugging purposes
@@ -105,14 +132,15 @@ void throwErrorOnSerial(const char* message) {
 
 //@brief reads and stores sensor values: temperature/humidity/distance
 void readSensorValues() {
-  temperature = dht22.readTemperature();
-  humidity = dht22.readHumidity();
-  distance = snowMeter.readRangeSingleMillimeters() / 10.00 + DISTANCE_OFFSET;  //read distance in mm, convert to cm and account for offset
+  radioPacket.temperature = dht22.readTemperature();
+  radioPacket.humidity = dht22.readHumidity();
+  radioPacket.distance = snowMeter.readRangeSingleMillimeters() / 10.00 + DISTANCE_OFFSET;  //read distance in mm, convert to cm and account for offset
+#ifdef USESERIAL
+  Serial.println("Values read and stored!");  //for debugging
+#endif
 }
-
-//@brief adds read values to radios buffer
-void appendValuesToRadio() {
-  radio.appendPacketFloat(temperature);
-  radio.appendPacketFloat(humidity);
-  radio.appendPacketFloat(distance);
+void readBatteryPercentage() {
+  float batteryVoltage = analogRead(VBAT_PIN) * K_BATTERY * k_GPIO;  //calculate actual voltage of battery using the coeficients for converting from the binary value to the GPIO voltage and then battery voltage
+  int percentage = batteryVoltage / (VBAT_MAX - VBAT_MIN) * 100;     //calculate battery %
+  radioPacket.batteryLevel = percentage;
 }

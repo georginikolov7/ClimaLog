@@ -1,14 +1,21 @@
 #ifndef OutsideMeasurer_h
 #define OutsideMeasurer_h
 #include <EEPROM.h>
-#include "Radio.h"
-#include <RH_ASK.h>
+#include <RF24.h>
+#include <nRF24L01.h>
 #include "Measurer.h"
 #include "Button.h"
 #include "Display.h"
+
+struct ReceiveBuffer {
+  float temperature;
+  int humidity;
+  float measuredDistance;
+  int batteryLevel;
+};
 class OutsideMeasurer : public Measurer {
 public:
-  OutsideMeasurer(Radio* radio, int index);
+  OutsideMeasurer(RF24* radio, int index);
   ~OutsideMeasurer();
   void setMountingHeight(int newHeight);
   void heightSetup(Button* setButton, Display* display);
@@ -22,12 +29,16 @@ public:
   int getMaxHeight() {
     return MAX_HEIGHT;
   }
-  bool readValues();
+  int getBatteryLevel() {
+    return batteryLevel;
+  }
+  void readValues() override;
 
   int getSnowDepth();
 private:
-  Radio* radio;
+  RF24* radio;
   int snowDepth = 0;
+  int batteryLevel = 0;        //outside module battery level in %
   int mountingHeight = 0;      //set mounting height in cm
   const int MAX_HEIGHT = 110;  //maximum mounitng height in cm
   const int MIN_HEIGHT = 50;   //minimal mounting height in cm

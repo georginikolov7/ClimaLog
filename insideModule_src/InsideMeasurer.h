@@ -7,7 +7,7 @@ class InsideMeasurer : public Measurer {
 public:
   InsideMeasurer(DHT* dhtSensor);
   ~InsideMeasurer();
-  bool readValues();
+  void readValues() override;
 private:
   DHT* dhtSensor;
 };
