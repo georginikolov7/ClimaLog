@@ -30,8 +30,8 @@ VL53L0X snowMeter;
 
 DHT dht22(DHTPIN, DHTSENSORTYPE);
 
-#define CE_PIN 7
-#define CS_PIN 8
+#define CE_PIN 10
+#define CS_PIN 9
 uint8_t readAddress[6] = "NODE1";
 uint8_t writeAddress[6] = "NODE2";
 RF24 radio;
@@ -136,6 +136,12 @@ void readSensorValues() {
   radioPacket.humidity = dht22.readHumidity();
   radioPacket.distance = snowMeter.readRangeSingleMillimeters() / 10.00 + DISTANCE_OFFSET;  //read distance in mm, convert to cm and account for offset
 #ifdef USESERIAL
+  // Serial.print("Temperature: ");
+  // Serial.print(radioPacket.temperature);
+  // Serial.print(" Hum: ");
+  // Serial.print(radioPacket.humidity);
+  // Serial.print(" D: ");
+  // Serial.println(radioPacket.distance);
   Serial.println("Values read and stored!");  //for debugging
 #endif
 }
