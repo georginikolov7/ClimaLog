@@ -1,3 +1,4 @@
+#include <stdint.h>
 #ifndef OutsideMeasurer_h
 #define OutsideMeasurer_h
 #include <EEPROM.h>
@@ -8,11 +9,12 @@
 #include "Display.h"
 
 struct ReceiveBuffer {
+  int32_t humidity;
+  int32_t batteryLevel;
   float temperature;
-  int humidity;
   float measuredDistance;
-  int batteryLevel;
 };
+
 class OutsideMeasurer : public Measurer {
 public:
   OutsideMeasurer(RF24* radio, int index);
@@ -38,11 +40,10 @@ public:
 private:
   RF24* radio;
   int snowDepth = 0;
-  int batteryLevel = 0;        //outside module battery level in %
-  int mountingHeight = 0;      //set mounting height in cm
-  const int MAX_HEIGHT = 110;  //maximum mounitng height in cm
-  const int MIN_HEIGHT = 50;   //minimal mounting height in cm
-  const int OUTSIDE_OUTPUT_BUFFER_SIZE = OUTPUT_BUFFER_SIZE + 10;
-  char* outsideOutput = new char[OUTSIDE_OUTPUT_BUFFER_SIZE];
+  int batteryLevel = 0;                                //outside module battery level in %
+  int mountingHeight = 0;                              //set mounting height in cm
+  const int MAX_HEIGHT = 110;                          //maximum mounitng height in cm
+  const int MIN_HEIGHT = 50;                           //minimal mounting height in cm
+  char* outsideOutput = new char[OUTPUT_BUFFER_SIZE];  //buffer is big enough for output c string
 };
 #endif

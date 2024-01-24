@@ -32,17 +32,19 @@ int ValueSelector::selectValue() {
       currentValue = minValue;
     }
 
-    char text_value[50] = "\0";
-    char text_noValue[50] = "\0";
+    char text_value[32] = "\0";
+    char text_noValue[32] = "\0";
     sprintf(text_value, "Select %s:\n%i %s", keyword, currentValue, measureUnit);
     sprintf(text_noValue, "Select %s:", keyword);
 
     if (millis() - lastBlinkTime > BLINK_INTERVAL) {
       if (isOn) {
+        display->resetDisplay();
         display->writeText(text_noValue);
         isOn = false;
         delay(10);
       } else {
+        display->resetDisplay();
         display->writeText(text_value);
         isOn = true;
         delay(10);
@@ -50,8 +52,9 @@ int ValueSelector::selectValue() {
       lastBlinkTime = millis();
     }
   }
-  char text[50] = "\0";
+  char text[64] = "\0";
   sprintf(text, "Selected %s\n   %i %s", keyword, currentValue, measureUnit);
+  display->resetDisplay();
   display->writeText(text);
   delay(2500);
 

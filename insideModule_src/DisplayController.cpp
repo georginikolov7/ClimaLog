@@ -11,7 +11,7 @@ void DisplayController::changeDisplayMode() {
   //increments the iterator by 1. Keeps in inside the bounds of measurers array
 }
 void DisplayController::displayData() {
-  char output[50] = "\0";  //output string buffer
+  char output[64] = "\0";  //output string buffer
   if (measurers[iterator]->getLocation() == 1) {
     //selected module is inside
     strcat(output, "    IN\n");
@@ -21,6 +21,7 @@ void DisplayController::displayData() {
     sprintf(output, "   OUT %i\n", index);
   }
   strcat(output, measurers[iterator]->getOutput());
+  display->resetDisplay();
   display->writeText(output);  //write the full output on the OLED
 }
 int DisplayController::getIterator() {

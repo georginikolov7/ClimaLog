@@ -32,8 +32,7 @@ DHT dht22(DHTPIN, DHTSENSORTYPE);
 
 #define CE_PIN 10
 #define CS_PIN 9
-uint8_t readAddress[6] = "NODE1";
-uint8_t writeAddress[6] = "NODE2";
+const uint8_t writeAddress[6] = "OUTM1";
 RF24 radio;
 
 //Battery level indicator:
@@ -44,10 +43,10 @@ RF24 radio;
 #define VBAT_MAX 8.4   //maximum voltage of battery
 //Sensor values:
 struct RadioPacket {
-  float temperature = 0;  //measured temperature in celsius
-  int humidity = 0;       //measured hum in %
-  float distance = 0;     //measured distance in cm
-  int batteryLevel = 0;   //sends current battery %
+  int32_t humidity;       //measured hum in %
+  int32_t batteryLevel;   //sends current battery %
+  float temperature;  //measured temperature in celsius
+  float distance;     //measured distance in cm
 };
 int packetsSent = 0;
 
@@ -84,12 +83,11 @@ void setup() {
     throwErrorOnSerial("ERROR! COULD NOT INITIALIZE RF24 radio");
 #endif
   }
-  radio.setPayloadSize(sizeof(radioPacket));
+  radio.setPayloadSize(sizeof(RadioPacket));
   radio.setDataRate(RF24_250KBPS);
   radio.setPALevel(RF24_PA_LOW);
   radio.openWritingPipe(writeAddress);
-  radio.stopListening();
-  radio.setAutoAck(false);
+  // radio.setAutoAck(false);
   radio.printPrettyDetails();  //for debugging
 
   //Set analog pin for VBAT as input:
@@ -103,20 +101,24 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   radio.powerUp();  //leave power saving mode of radio
+  delay(200);       //time to bootup radio
   readSensorValues();
   readBatteryPercentage();
-  radio.stopListening();                                         //set radio in Tx mode
-  bool report = radio.write(&radioPacket, sizeof(radioPacket));  //sent package
-  Serial.println(report);
-  if (report) {
-#ifdef USESERIAL
-    Serial.println("Packet sent successfully!");
-#endif
-  }
+  radio.stopListening();                           //set radio in Tx mode
+  radio.write(&radioPacket, sizeof(radioPacket));  //sent package
 
-  delay(200);         //delay before sleeping to prevent unpredictable behaviour
-  radio.powerDown();  //enter power saving mode of radio
-  LowPower.longPowerDown(SLEEPTIME_MILLISECONDS);
+  //print sent status on serial:
+  //   #ifdef USESERIAL
+  //   Serial.print("Is received: ");
+  //   Serial.println(report);
+  //   if (report) {
+  //     Serial.println("Packet sent successfully!");
+  // #endif
+  //  }
+
+  delay(200);                                      //delay before sleeping to prevent unpredictable behaviour
+  radio.powerDown();                               //enter power saving mode of radio
+  LowPower.longPowerDown(SLEEPTIME_MILLISECONDS);  //set arduino to sleep
 }
 
 
@@ -136,12 +138,12 @@ void readSensorValues() {
   radioPacket.humidity = dht22.readHumidity();
   radioPacket.distance = snowMeter.readRangeSingleMillimeters() / 10.00 + DISTANCE_OFFSET;  //read distance in mm, convert to cm and account for offset
 #ifdef USESERIAL
-  // Serial.print("Temperature: ");
-  // Serial.print(radioPacket.temperature);
-  // Serial.print(" Hum: ");
-  // Serial.print(radioPacket.humidity);
-  // Serial.print(" D: ");
-  // Serial.println(radioPacket.distance);
+  Serial.print("Temperature: ");
+  Serial.print(radioPacket.temperature);
+  Serial.print(" Hum: ");
+  Serial.print(radioPacket.humidity);
+  Serial.print(" D: ");
+  Serial.println(radioPacket.distance);
   Serial.println("Values read and stored!");  //for debugging
 #endif
 }

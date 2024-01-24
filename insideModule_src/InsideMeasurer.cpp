@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "InsideMeasurer.h"
 #include <DHT.h>
 InsideMeasurer::InsideMeasurer(DHT* dhtSensor) {
@@ -8,5 +9,9 @@ InsideMeasurer::~InsideMeasurer() {
 }
 void InsideMeasurer::readValues() {
   temperature = dhtSensor->readTemperature();
-  humidity = dhtSensor->readHumidity();
+  float readHum = dhtSensor->readHumidity();
+  if (isnan(readHum)) {
+    readHum = 0;
+  }
+  humidity = round(readHum);
 }

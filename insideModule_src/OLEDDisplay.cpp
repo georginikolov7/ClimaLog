@@ -13,10 +13,10 @@ void OLEDDisplay::writeAt(int row, const char* text) {
 }
 void OLEDDisplay::resetDisplay() {
   Adafruit_SSD1306::clearDisplay();
-  Adafruit_SSD1306::display();
+  //Adafruit_SSD1306::display();
 }
 void OLEDDisplay::drawBitmap(int x, int y, const uint8_t* bitmap) {
-  Adafruit_SSD1306::drawBitmap(x, y, bitmap, , WHITE);
+ // Adafruit_SSD1306::drawBitmap(x, y, bitmap, , WHITE);
 }
 void OLEDDisplay::setupDisplay() {
   Adafruit_SSD1306::clearDisplay();

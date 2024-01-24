@@ -27,9 +27,9 @@
 
 #define USESERIAL  // uncomment to use serial monitor for debugging
 
-#define CE_PIN 17                  //SPI chip enable
-#define CS_PIN 5                   //SPI chip select pin
-uint8_t readAddress[6] = "NODE1";  //address for outside module 1
+#define CE_PIN 17                          //SPI chip enable
+#define CS_PIN 5                           //SPI chip select pin
+uint8_t readAddresses[][6] = { "OUTM1" };  //addresses for outside modules
 RF24 radio(CE_PIN, CS_PIN);
 
 #define INSIDE_DHT_TYPE DHT22
@@ -93,15 +93,6 @@ void setup() {
   // SPI.beginTransaction(spiSettings);
   // Serial.println("HELLO?");
   SPI.begin();
-  if (!radio.begin()) {
-#ifdef USESERIAL
-    Serial.println(F("Could not initialize RF24 module!"));
-    while(true){
-      
-    }
-#endif
-  }
-  setupRadio();
   //EEPROM used to save mounting height
   EEPROM.begin(OUTSIDE_MODULES_COUNT);  //we need to keep one int value for every outside module
 
@@ -133,22 +124,32 @@ void setup() {
   attachInterrupt(SET_BUTTON_PIN, ISR_SET_BUTTON, CHANGE);
   attachInterrupt(DISPLAY_BUTTON_PIN, ISR_DISPLAY_BUTTON, CHANGE);
 
+  if (!radio.begin()) {
+#ifdef USESERIAL
+    Serial.println(F("Could not initialize RF24 module!"));
+    while (true) {
+    }
+#endif
+  }
+  setupRadio();
+
 #ifdef USESERIAL
   Serial.println(F("Setup is complete!"));
 #endif
 }
 
+uint8_t receivePipe;
 void loop() {
   // put your main code here, to run repeatedly:
-  for (int i = 1; i <= OUTSIDE_MODULES_COUNT; i++) {
-    if (radio.available((uint8_t*)i)) {
-      //Pipe number of radio's node1 matches the index of outside measurers in the array
-      //But pipes start from 1 indeces from 0
-      outsideMeasurers[i - 1]->readValues();
+  if (radio.available(&receivePipe)) {
+    //receivePipe corresponds to index of outsideMeasurer + 1
+    Serial.println("Test");
+    outsideMeasurers[receivePipe - 1]->readValues();
 #ifdef USESERIAL
-      Serial.printf("Received data from outside module %i", i);  //for debugging
+    Serial.printf("Received data from outside module %i\n", receivePipe);  //for debuging
+    Serial.println(outsideMeasurer.getOutput());
 #endif
-    }
+    displayController.displayData();    //update values on display
   }
 
   if (setButton.isLongPressed()) {
@@ -182,13 +183,17 @@ void heightSetup() {
   Serial.printf("New height: %i", outsideMeasurers[moduleIndex]->getMountingHeight());  //for debugging only
 #endif
 }
+
+
 void setupRadio() {
+  radio.setDataRate(RF24_250KBPS);
+  radio.setPALevel(RF24_PA_HIGH);
+  radio.setPayloadSize(sizeof(ReceiveBuffer));
   for (int i = 1; i <= OUTSIDE_MODULES_COUNT; i++) {
-    radio.openReadingPipe(i, readAddress);
-    radio.setDataRate(RF24_250KBPS);
-    radio.setPALevel(RF24_PA_LOW);
+    radio.openReadingPipe(i, readAddresses[i - 1]);  //open a reading pipe for each of the connected outside modules
   }
 #ifdef USESERIAL
   radio.printPrettyDetails();  //for debugging
 #endif
+  radio.startListening();
 }

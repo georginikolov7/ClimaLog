@@ -1,3 +1,4 @@
+#include "Server.h"
 #include "OutsideMeasurer.h"
 OutsideMeasurer::OutsideMeasurer(RF24 *radio, int index) {
   this->radio = radio;
@@ -12,6 +13,12 @@ void OutsideMeasurer::readValues() {
 
   ReceiveBuffer buffer;
   radio->read(&buffer, sizeof(buffer));
+  if (buffer.temperature > 50 || buffer.temperature < -30
+      || buffer.humidity > 100 || buffer.humidity < 0
+      || buffer.measuredDistance < 0) {
+    //Invalid data
+    return;
+  }
   this->temperature = buffer.temperature;
   this->humidity = buffer.humidity;
   int snowDepth = mountingHeight - buffer.measuredDistance;
@@ -38,9 +45,9 @@ void OutsideMeasurer::readValues() {
 }
 const char *OutsideMeasurer::getOutput() {
   delete[] outsideOutput;
-  outsideOutput = new char[OUTSIDE_OUTPUT_BUFFER_SIZE];
+  outsideOutput = new char[OUTPUT_BUFFER_SIZE];
   strcpy(outsideOutput, Measurer::getOutput());
-  char snowString[20] = "\0";
+  char snowString[64] = "\0";
   sprintf(snowString, "\nSnow %i cm", snowDepth);
   strcat(outsideOutput, snowString);
   return outsideOutput;
