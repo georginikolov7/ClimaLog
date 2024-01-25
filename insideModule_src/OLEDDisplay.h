@@ -11,9 +11,15 @@ public:
   ~OLEDDisplay() {}
   void writeText(const char* text) override;
   void writeAt(int row, const char* text) override;
-  void drawBitmap(int x, int y, const uint8_t* bitmap) override;
+  void drawBitmap(int x, int y, const uint8_t* bitmap, int w, int h) override;
   void resetDisplay() override;
   void setupDisplay();
+  int getWidth() {
+    return 128;
+  }
+  int getHeight() {
+    return 64;
+  }
 };
 
 #endif

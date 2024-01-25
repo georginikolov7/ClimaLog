@@ -4,7 +4,8 @@
 DisplayController::DisplayController(Display* display, InsideMeasurer* insideMeasurer, OutsideMeasurer** outsideMeasurers, int outsideMeasurersCount) {
   this->display = display;
   const int measurersCount = outsideMeasurersCount + 1;
-  measurers = new Measurer*[measurersCount];
+  this->outsideMeasurers = outsideMeasurers;
+  this->measurers = new Measurer*[measurersCount];
   this->measurersCount = measurersCount;
   //1st element is the insideMeasurer:
   measurers[0] = insideMeasurer;
@@ -24,22 +25,24 @@ void DisplayController::changeDisplayMode() {
 }
 
 void DisplayController::displayData() {
+  display->resetDisplay();
   char output[64] = "\0";  //output string buffer
   if (measurers[iterator]->isInsideModule() == 1) {
     //selected module is inside
-    strcat(output, "    IN\n");
+    strcat(output, "IN\n");
   } else {
     //selected module is outside:
-    int index = measurers[iterator]->getIndex();  //get the index:
-    sprintf(output, "   OUT %i\n", index);
+    int index = measurers[iterator]->getIndex();  //get the index (which outside module is this?):
+    sprintf(output, "OUT %i\n", index);
 
     if (outsideMeasurers[iterator - 1]->batLevelIsLow()) {
       //size of outsideMeasurers array is measurers size - 1 => index is iterator - 1
       //Draw the bitmap on the display:
+      int xPosition = display->getWidth() - BATTERY_INDICATOR_WIDTH;
+      display->drawBitmap(xPosition, 0, batteryIndicator, 16, 16);
     }
   }
   strcat(output, measurers[iterator]->getOutput());
-  display->resetDisplay();
   display->writeText(output);  //write the full output on the OLED
 }
 int DisplayController::getIterator() {

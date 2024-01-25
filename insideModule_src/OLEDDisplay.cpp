@@ -15,8 +15,9 @@ void OLEDDisplay::resetDisplay() {
   Adafruit_SSD1306::clearDisplay();
   //Adafruit_SSD1306::display();
 }
-void OLEDDisplay::drawBitmap(int x, int y, const uint8_t* bitmap) {
- // Adafruit_SSD1306::drawBitmap(x, y, bitmap, , WHITE);
+void OLEDDisplay::drawBitmap(int x, int y, const uint8_t* bitmap, int w, int h) {
+  Adafruit_SSD1306::drawBitmap(x, y, bitmap, w, h, WHITE);
+  Adafruit_SSD1306::display();
 }
 void OLEDDisplay::setupDisplay() {
   Adafruit_SSD1306::clearDisplay();
