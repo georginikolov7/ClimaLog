@@ -27,10 +27,6 @@
 
 #define USESERIAL  // uncomment to use serial monitor for debugging
 
-#define CE_PIN 17                          //SPI chip enable
-#define CS_PIN 5                           //SPI chip select pin
-uint8_t readAddresses[][6] = { "OUTM1" };  //addresses for outside modules
-RF24 radio(CE_PIN, CS_PIN);
 
 #define INSIDE_DHT_TYPE DHT22
 #define INSIDE_DHT_PIN 4  //DHT22 pin
@@ -51,23 +47,25 @@ Button displayButton(DISPLAY_BUTTON_PIN);
 
 DHT insideDHT(INSIDE_DHT_PIN, INSIDE_DHT_TYPE);  //dht22 temp/hum sensor for inside
 
+//Radio:
+#define CE_PIN 17                          //SPI chip enable
+#define CS_PIN 5                           //SPI chip select pin
+uint8_t readAddresses[][6] = { "OUTM1" };  //addresses for outside modules
+RF24 radio(CE_PIN, CS_PIN);
+
 #define DEFAULT_MOUNTING_HEIGHT 100  //modules work best when mounted at 1 meter (but can be changed using the buttons)
 #define OUTSIDE_MODULES_COUNT 1
 InsideMeasurer insideMeasurer(&insideDHT);   //create instance for measuring temp/humidity inside
 OutsideMeasurer outsideMeasurer(&radio, 1);  //create instance for receiving data from radio module (outside data)
 
-//Measurers poiters array to pass to displayController:
-Measurer* measurers[2] = {
-  &insideMeasurer,
-  &outsideMeasurer
-};
-//Outside measurer pointers used for change height function
-OutsideMeasurer* outsideMeasurers[1] = {
+
+//OutsideMeasurer pointers
+OutsideMeasurer* outsideMeasurers[OUTSIDE_MODULES_COUNT] = {
   &outsideMeasurer
 };
 
 //Display controller object, used for toggling display mode
-DisplayController displayController(&display, measurers, 2);
+DisplayController displayController(&display, &insideMeasurer, outsideMeasurers, 1);
 
 
 unsigned long lastInsideReadTime = 0;
@@ -139,6 +137,7 @@ void setup() {
 }
 
 uint8_t receivePipe;
+
 void loop() {
   // put your main code here, to run repeatedly:
   if (radio.available(&receivePipe)) {
@@ -148,8 +147,9 @@ void loop() {
 #ifdef USESERIAL
     Serial.printf("Received data from outside module %i\n", receivePipe);  //for debuging
     Serial.println(outsideMeasurer.getOutput());
+    Serial.println(outsideMeasurer.getBatteryLevel());
 #endif
-    displayController.displayData();    //update values on display
+    displayController.displayData();  //update values on display
   }
 
   if (setButton.isLongPressed()) {

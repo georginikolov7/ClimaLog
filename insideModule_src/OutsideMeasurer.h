@@ -34,6 +34,9 @@ public:
   int getBatteryLevel() {
     return batteryLevel;
   }
+  bool batLevelIsLow() {
+    return batteryLevel <= 30;  //returns true if battery is at capacity below 30%
+  }
   void readValues() override;
 
   int getSnowDepth();

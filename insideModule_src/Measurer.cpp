@@ -15,7 +15,7 @@ float Measurer::getTemperature() {
 int Measurer::getHumidity() {
   return humidity;
 }
-bool Measurer::getLocation() {
+bool Measurer::isInsideModule() {
   return isInside;
 }
 int Measurer::getIndex() {

@@ -25,23 +25,6 @@ void OutsideMeasurer::readValues() {
   snowDepth = ((snowDepth + 5 / 2) / 5) * 5;  //round snowDepth to closest multiple of 5
   this->snowDepth = snowDepth;
   this->batteryLevel = buffer.batteryLevel;
-
-  // try {
-  //   char *token;
-  //   char *rest = (char *)receiveBuffer;
-  //   token = strtok_r(rest, ";", &rest);
-  //   temperature = atof(token);
-  //   token = strtok_r(rest, ";", &rest);
-  //   humidity = atof(token);
-  //   token = strtok_r(rest, ";", &rest);
-  //   measuredDistance = atof(token);
-  //   snowDepth = mountingHeight - measuredDistance;
-
-  //   snowDepth = ((snowDepth + 5 / 2) / 5) * 5;  //round snowDepth to closest multiple of 5
-  // } catch (...) {
-  //   //Received buffer's format is incorrect => dump that packet
-  //   Serial.println("EBASI MAMATA");
-  //   return false;
 }
 const char *OutsideMeasurer::getOutput() {
   delete[] outsideOutput;

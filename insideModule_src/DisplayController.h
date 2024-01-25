@@ -4,15 +4,18 @@
 //include the display library:
 #include "Display.h"
 #include "Measurer.h"
-
+#include "InsideMeasurer.h"
+#include "OutsideMeasurer.h"
 class DisplayController {
 public:
-  DisplayController(Display* display, Measurer** measurers, int measurersCount);
+  DisplayController(Display* display, InsideMeasurer* insideMeasurer, OutsideMeasurer** outsideMeasurers, int outsideMeasurersCount);
+  ~DisplayController();
   void changeDisplayMode();
   void displayData();
   int getIterator();
 private:
   Measurer** measurers;
+  OutsideMeasurer** outsideMeasurers;
   Display* display;
   int iterator = 0;
   int measurersCount = 0;

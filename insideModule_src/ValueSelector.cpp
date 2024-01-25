@@ -34,8 +34,8 @@ int ValueSelector::selectValue() {
 
     char text_value[32] = "\0";
     char text_noValue[32] = "\0";
-    sprintf(text_value, "Select %s:\n%i %s", keyword, currentValue, measureUnit);
-    sprintf(text_noValue, "Select %s:", keyword);
+    sprintf(text_value, "Select \n%s:\n%i %s", keyword, currentValue, measureUnit);
+    sprintf(text_noValue, "Select \n%s:", keyword);
 
     if (millis() - lastBlinkTime > BLINK_INTERVAL) {
       if (isOn) {
@@ -53,7 +53,7 @@ int ValueSelector::selectValue() {
     }
   }
   char text[64] = "\0";
-  sprintf(text, "Selected %s\n   %i %s", keyword, currentValue, measureUnit);
+  sprintf(text, "Selected \n%s\n   %i %s", keyword, currentValue, measureUnit);
   display->resetDisplay();
   display->writeText(text);
   delay(2500);

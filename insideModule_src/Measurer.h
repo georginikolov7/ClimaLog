@@ -9,7 +9,7 @@ public:
   float getTemperature();
   int getHumidity();
   virtual ~Measurer();
-  bool getLocation();  //1 -> inside; 0 -> outside
+  bool isInsideModule();  //1 -> inside; 0 -> outside
   int getIndex();
 protected:
   float temperature = 0;
