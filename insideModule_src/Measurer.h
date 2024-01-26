@@ -15,7 +15,7 @@ protected:
   float temperature = 0;
   int humidity = 0;
   const int OUTPUT_BUFFER_SIZE = 64;
-  char* output = new char[OUTPUT_BUFFER_SIZE];
+  char* output;
   bool isInside;
   int index = 1;
 };

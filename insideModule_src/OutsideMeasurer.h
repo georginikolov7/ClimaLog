@@ -47,6 +47,6 @@ private:
   int mountingHeight = 0;                              //set mounting height in cm
   const int MAX_HEIGHT = 110;                          //maximum mounitng height in cm
   const int MIN_HEIGHT = 50;                           //minimal mounting height in cm
-  char* outsideOutput = new char[OUTPUT_BUFFER_SIZE];  //buffer is big enough for output c string
+  char* outsideOutput;
 };
 #endif

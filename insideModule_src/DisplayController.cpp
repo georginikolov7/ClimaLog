@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <string.h>
 #include "DisplayController.h"
 #include <Arduino.h>
 
@@ -25,24 +27,30 @@ void DisplayController::changeDisplayMode() {
 }
 
 void DisplayController::displayData() {
+
+  const int OUTPUT_BUFFER_SIZE = 254;
+  char output[OUTPUT_BUFFER_SIZE] = "\0";  //output string buffer
+  int availableSpace = OUTPUT_BUFFER_SIZE - 1;
   display->resetDisplay();
-  char output[64] = "\0";  //output string buffer
+
   if (measurers[iterator]->isInsideModule() == 1) {
     //selected module is inside
-    strcat(output, "IN\n");
+    strncat(output, "IN\n", availableSpace);
   } else {
     //selected module is outside:
     int index = measurers[iterator]->getIndex();  //get the index (which outside module is this?):
-    sprintf(output, "OUT %i\n", index);
+    availableSpace = OUTPUT_BUFFER_SIZE - strlen(output) - 1;
+    snprintf(output, availableSpace, "OUT %i\n", index);
 
     if (outsideMeasurers[iterator - 1]->batLevelIsLow()) {
       //size of outsideMeasurers array is measurers size - 1 => index is iterator - 1
       //Draw the bitmap on the display:
       int xPosition = display->getWidth() - BATTERY_INDICATOR_WIDTH;
-      display->drawBitmap(xPosition, 0, batteryIndicator, 16, 16);
+      display->drawBitmap(xPosition, 0, batteryIndicator, BATTERY_INDICATOR_WIDTH, BATTERY_INDICATOR_HEIGHT);
     }
   }
-  strcat(output, measurers[iterator]->getOutput());
+  availableSpace = OUTPUT_BUFFER_SIZE - strlen(output) - 1;
+  strncat(output, measurers[iterator]->getOutput(), availableSpace);
   display->writeText(output);  //write the full output on the OLED
 }
 int DisplayController::getIterator() {

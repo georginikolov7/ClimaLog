@@ -13,5 +13,8 @@ void InsideMeasurer::readValues() {
   if (isnan(readHum)) {
     readHum = 0;
   }
+  if (isnan(temperature)) {
+    temperature = 0;
+  }
   humidity = round(readHum);
 }

@@ -25,13 +25,18 @@ DHT dht22(DHTPIN, DHTSENSORTYPE);
 
 //Distance sensor:
 #define SNOWMETER_HIGH_ACCURACY
-const int DISTANCE_OFFSET = -3;  //when measuring distance to snow, sensor tends to measure 3cm more than actual
+//#define SNOWMETER_HIGH_RANGE
+const int FIRST_ZERO_OFFSET_POINT = 50;   //sensor measures pefectly at 50 cm
+const int SECOND_ZERO_OFFSET_POINT = 75;  //sensor measures 10 cm short after 75 cm
+
+const int OFFSET_OVER = 5;  //after 50 cm sensor measures 5 cm short
+const int OFFSET_UNDER = -1.5;
 VL53L0X snowMeter;
 
 //Radio object:
 #define CE_PIN 10
 #define CS_PIN 9
-const uint8_t writeAddress[6] = "OUTM1";
+const uint8_t writeAddress[6] = "1OUTM";
 RF24 radio;
 
 //Battery level indicator:
@@ -74,6 +79,14 @@ void setup() {
   snowMeter.setMeasurementTimingBudget(200000);
 #endif
 
+#if defined SNOWMETER_HIGH_RANGE
+  // lower the return signal rate limit (default is 0.25 MCPS)
+  snowMeter.setSignalRateLimit(0.1);
+  // increase laser pulse periods (defaults are 14 and 10 PCLKs)
+  snowMeter.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
+  snowMeter.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
+#endif
+
   dht22.begin();  //begin the temp/hum sensor
 
   //setup radio:
@@ -84,7 +97,7 @@ void setup() {
   }
   radio.setPayloadSize(sizeof(RadioPacket));
   radio.setDataRate(RF24_250KBPS);
-  radio.setPALevel(RF24_PA_LOW);
+  radio.setPALevel(RF24_PA_MAX, 1);
   radio.openWritingPipe(writeAddress);
   radio.printPrettyDetails();  //for debugging
 
@@ -136,7 +149,15 @@ void throwErrorOnSerial(const char* message) {
 void readSensorValues() {
   radioPacket.temperature = dht22.readTemperature();
   radioPacket.humidity = dht22.readHumidity();
-  radioPacket.distance = snowMeter.readRangeSingleMillimeters() / 10.00 + DISTANCE_OFFSET;  //read distance in mm, convert to cm and account for offset
+  radioPacket.distance = snowMeter.readRangeSingleMillimeters() / 10.00;  //read distance in mm, convert to cm and account for offset
+  if (radioPacket.distance > SECOND_ZERO_OFFSET_POINT) {
+    radioPacket.distance += OFFSET_OVER;
+  }
+  if (radioPacket.distance > FIRST_ZERO_OFFSET_POINT) {
+    radioPacket.distance += OFFSET_OVER;
+  } else if (radioPacket.distance < 65) {
+    radioPacket.distance += OFFSET_UNDER;
+  }
 #ifdef USESERIAL
   Serial.print("Temperature: ");
   Serial.print(radioPacket.temperature);

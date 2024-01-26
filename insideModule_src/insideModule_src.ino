@@ -47,25 +47,26 @@ Button displayButton(DISPLAY_BUTTON_PIN);
 
 DHT insideDHT(INSIDE_DHT_PIN, INSIDE_DHT_TYPE);  //dht22 temp/hum sensor for inside
 
+#define OUTSIDE_MODULES_COUNT 2
 //Radio:
-#define CE_PIN 17                          //SPI chip enable
-#define CS_PIN 5                           //SPI chip select pin
-uint8_t readAddresses[][6] = { "OUTM1" };  //addresses for outside modules
+#define CE_PIN 17                                               //SPI chip enable
+#define CS_PIN 5                                                //SPI chip select pin
+uint8_t readAddresses[OUTSIDE_MODULES_COUNT][6] = { "1OUTM" };  //addresses for outside modules
 RF24 radio(CE_PIN, CS_PIN);
 
-#define DEFAULT_MOUNTING_HEIGHT 100  //modules work best when mounted at 1 meter (but can be changed using the buttons)
-#define OUTSIDE_MODULES_COUNT 1
+#define DEFAULT_MOUNTING_HEIGHT 100          //modules work best when mounted at 1 meter (but can be changed using the buttons)
 InsideMeasurer insideMeasurer(&insideDHT);   //create instance for measuring temp/humidity inside
 OutsideMeasurer outsideMeasurer(&radio, 1);  //create instance for receiving data from radio module (outside data)
-
+OutsideMeasurer out2(&radio, 2);
 
 //OutsideMeasurer pointers
 OutsideMeasurer* outsideMeasurers[OUTSIDE_MODULES_COUNT] = {
-  &outsideMeasurer
+  &outsideMeasurer,
+  &out2
 };
 
 //Display controller object, used for toggling display mode
-DisplayController displayController(&display, &insideMeasurer, outsideMeasurers, 1);
+DisplayController displayController(&display, &insideMeasurer, outsideMeasurers, OUTSIDE_MODULES_COUNT);
 
 
 unsigned long lastInsideReadTime = 0;
@@ -87,10 +88,8 @@ void setup() {
   while (!Serial) {
   }
 #endif
-  // SPISettings spiSettings(2000000, MSBFIRST, SPI_MODE0);  //lower SPI frequency to 4MHZ so it works with nrf24
-  // SPI.beginTransaction(spiSettings);
-  // Serial.println("HELLO?");
   SPI.begin();
+
   //EEPROM used to save mounting height
   EEPROM.begin(OUTSIDE_MODULES_COUNT);  //we need to keep one int value for every outside module
 
@@ -115,13 +114,14 @@ void setup() {
   display.begin(SSD1306_SWITCHCAPVCC, DISPLAY_ADDRESS);
   //default setup for display:
   display.setupDisplay();
-  displayController.displayData();
+  displayController.displayData();  //displays first measurer in array (inside measurer by default)
 
 
   //Attach interrupts for buttons:
   attachInterrupt(SET_BUTTON_PIN, ISR_SET_BUTTON, CHANGE);
   attachInterrupt(DISPLAY_BUTTON_PIN, ISR_DISPLAY_BUTTON, CHANGE);
 
+  //initialize RF24 radio:
   if (!radio.begin()) {
 #ifdef USESERIAL
     Serial.println(F("Could not initialize RF24 module!"));
@@ -140,9 +140,9 @@ uint8_t receivePipe;
 
 void loop() {
   // put your main code here, to run repeatedly:
+  //Check if data is received:
   if (radio.available(&receivePipe)) {
     //receivePipe corresponds to index of outsideMeasurer + 1
-    Serial.println("Test");
     outsideMeasurers[receivePipe - 1]->readValues();
 #ifdef USESERIAL
     Serial.printf("Received data from outside module %i\n", receivePipe);  //for debuging
@@ -160,8 +160,8 @@ void loop() {
   if (millis() - lastInsideReadTime > INSIDE_READ_INTERVAL) {
     //read inside values:
     insideMeasurer.readValues();
-    delay(5);
     displayController.displayData();  //if inside module is showing on display => update values
+    lastInsideReadTime = millis();
   }
 
   if (setButton.isShortPressed()) {
@@ -187,7 +187,7 @@ void heightSetup() {
 
 void setupRadio() {
   radio.setDataRate(RF24_250KBPS);
-  radio.setPALevel(RF24_PA_HIGH);
+  radio.setPALevel(RF24_PA_MAX);
   radio.setPayloadSize(sizeof(ReceiveBuffer));
   for (int i = 1; i <= OUTSIDE_MODULES_COUNT; i++) {
     radio.openReadingPipe(i, readAddresses[i - 1]);  //open a reading pipe for each of the connected outside modules
