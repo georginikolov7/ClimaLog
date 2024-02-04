@@ -6,16 +6,13 @@
 
 class ValueSelector {
 public:
-  ValueSelector(int minValue, int maxValue, int incrementValue, Display* display, Button* setButton, const char* keyword = "value", const char* measureUnit = "");
+  ValueSelector(Display* display, Button* setButton, const char* keyword = "value", const char* measureUnit = "");
   ~ValueSelector();
-  int selectValue();
+  int selectIntValue(int minValue, int maxValue, int startValue, int incrementValue);
+  int selectStringValueFromArray(const char (*array)[50], int arraySize, int incrementValue = 1);  //returns the index of the selected string
 
 private:
   const int BLINK_INTERVAL = 300;
-  int minValue;
-  int maxValue;
-  int incrementValue;
-
   Display* display;
   Button* setButton;
 

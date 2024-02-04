@@ -1,10 +1,7 @@
 #include <cstring>
 #include "ValueSelector.h"
 
-ValueSelector::ValueSelector(int minValue, int maxValue, int incrementValue, Display* display, Button* setButton, const char* keyword, const char* measureUnit) {
-  this->minValue = minValue;
-  this->maxValue = maxValue;
-  this->incrementValue = incrementValue;
+ValueSelector::ValueSelector(Display* display, Button* setButton, const char* keyword, const char* measureUnit) {
   this->display = display;
   this->setButton = setButton;
   int keywordLength = strlen(keyword);
@@ -19,8 +16,8 @@ ValueSelector::~ValueSelector() {
   delete[] measureUnit;
 }
 
-int ValueSelector::selectValue() {
-  int currentValue = minValue;
+int ValueSelector::selectIntValue(int minValue, int maxValue, int startValue, int incrementValue) {
+  int currentValue = startValue;
   unsigned long lastBlinkTime = 0;  //used to store last time display was blinked
   bool isOn = false;                //used to determine whether display is showing value string (in blinker function)
 
@@ -54,6 +51,33 @@ int ValueSelector::selectValue() {
   }
   char text[64] = "\0";
   sprintf(text, "Selected \n%s\n   %i %s", keyword, currentValue, measureUnit);
+  display->resetDisplay();
+  display->writeText(text);
+  delay(2500);
+
+  return currentValue;
+}
+
+int ValueSelector::selectStringValueFromArray(const char (*array)[50], int arraySize, int incrementValue) {
+  int currentValue = 0;
+
+  while (!setButton->isLongPressed()) {
+
+    if (setButton->isShortPressed()) {
+      currentValue += incrementValue;
+    }
+    if (currentValue >= arraySize) {
+      currentValue = 0;
+    }
+    char text_value[32] = "\0";
+
+    sprintf(text_value, "Select \n%s:\n%s %s", keyword, array[currentValue], measureUnit);
+
+    display->resetDisplay();
+    display->writeText(text_value);
+  }
+  char text[64] = "\0";
+  sprintf(text, "Selected \n%s\n   %s %s", keyword, array[currentValue], measureUnit);
   display->resetDisplay();
   display->writeText(text);
   delay(2500);

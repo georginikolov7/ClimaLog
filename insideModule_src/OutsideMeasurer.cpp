@@ -23,6 +23,8 @@ void OutsideMeasurer::readValues() {
   }
   this->temperature = buffer.temperature;
   this->humidity = buffer.humidity;
+  Serial.print("Measured: ");
+  Serial.println(buffer.measuredDistance);
   int snowDepth = mountingHeight - buffer.measuredDistance;
   snowDepth = ((snowDepth + 5 / 2) / 5) * 5;  //round snowDepth to closest multiple of 5
   this->snowDepth = snowDepth;

@@ -18,6 +18,10 @@
 #define USESERIAL
 #define SLEEPTIME_MILLISECONDS 300000  //define the sleep time of 5 minute(s)
 
+//Data validation:
+#define MAX_MOUNTING_HEIGHT 150
+#define MEASURE_RETRY_COUNT 3
+bool measureIsSuccessful = false;  //boolean flag for checking whether measured values are realistic
 //DHT22 object
 #define DHTPIN 2             //digital pin for Temp/Hum sensor
 #define DHTSENSORTYPE DHT22  //type of ht sensor used
@@ -26,17 +30,15 @@ DHT dht22(DHTPIN, DHTSENSORTYPE);
 //Distance sensor:
 #define SNOWMETER_HIGH_ACCURACY
 //#define SNOWMETER_HIGH_RANGE
-const int FIRST_ZERO_OFFSET_POINT = 50;   //sensor measures pefectly at 50 cm
-const int SECOND_ZERO_OFFSET_POINT = 75;  //sensor measures 10 cm short after 75 cm
 
-const int OFFSET_OVER = 5;  //after 50 cm sensor measures 5 cm short
-const int OFFSET_UNDER = -1.5;
+const int OFFSET = -2.5;  //after 50 cm sensor measures 5 cm short
+
 VL53L0X snowMeter;
 
 //Radio object:
 #define CE_PIN 10
 #define CS_PIN 9
-const uint8_t writeAddress[6] = "1OUTM";
+const uint8_t writeAddress[6] = "1OUTM";  //Change adress according to index of the current  module
 RF24 radio;
 
 //Battery level indicator:
@@ -97,7 +99,7 @@ void setup() {
   }
   radio.setPayloadSize(sizeof(RadioPacket));
   radio.setDataRate(RF24_250KBPS);
-  radio.setPALevel(RF24_PA_MAX, 1);
+  radio.setPALevel(RF24_PA_MAX);
   radio.openWritingPipe(writeAddress);
   radio.printPrettyDetails();  //for debugging
 
@@ -113,21 +115,11 @@ void loop() {
   // put your main code here, to run repeatedly:
   radio.powerUp();  //leave power saving mode of radio
   delay(200);       //time to bootup radio
-  readSensorValues();
   readBatteryPercentage();
-
-  Serial.println(radioPacket.batteryLevel);        //print bat % on serial
-  radio.stopListening();                           //set radio in Tx mode
-  radio.write(&radioPacket, sizeof(radioPacket));  //sent package
-
-  // print sent status on serial:
-  //   #ifdef USESERIAL
-  //   Serial.print("Is received: ");
-  //   Serial.println(report);
-  //   if (report) {
-  //     Serial.println("Packet sent successfully!");
-  // #endif
-  //  }
+  if (readSensorValues()) {
+    radio.stopListening();                           //set radio in Tx mode
+    radio.write(&radioPacket, sizeof(radioPacket));  //sent package
+  }
 
   delay(200);                                      //delay before sleeping to prevent unpredictable behaviour
   radio.powerDown();                               //enter power saving mode of radio
@@ -146,27 +138,34 @@ void throwErrorOnSerial(const char* message) {
 }
 
 //@brief reads and stores sensor values: temperature/humidity/distance
-void readSensorValues() {
-  radioPacket.temperature = dht22.readTemperature();
-  radioPacket.humidity = dht22.readHumidity();
-  radioPacket.distance = snowMeter.readRangeSingleMillimeters() / 10.00;  //read distance in mm, convert to cm and account for offset
-  if (radioPacket.distance > SECOND_ZERO_OFFSET_POINT) {
-    radioPacket.distance += OFFSET_OVER;
-  }
-  if (radioPacket.distance > FIRST_ZERO_OFFSET_POINT) {
-    radioPacket.distance += OFFSET_OVER;
-  } else if (radioPacket.distance < 65) {
-    radioPacket.distance += OFFSET_UNDER;
-  }
+bool readSensorValues() {
+  for (int i = 0; i < MEASURE_RETRY_COUNT; i++) {
+    radioPacket.temperature = dht22.readTemperature();
+    radioPacket.humidity = dht22.readHumidity();
+    radioPacket.distance = snowMeter.readRangeSingleMillimeters() / 10.00;  //read distance in mm, convert to cm and account for offset
+    if (radioPacket.temperature > 45
+        || radioPacket.temperature < -35
+        || radioPacket.humidity > 100
+        || radioPacket.humidity <= 0
+        || radioPacket.distance < 0
+        || radioPacket.distance > MAX_MOUNTING_HEIGHT) {
+      //Inalid data-> retry
+    } else {
+      radioPacket.distance += OFFSET;
+
 #ifdef USESERIAL
-  Serial.print("Temperature: ");
-  Serial.print(radioPacket.temperature);
-  Serial.print(" Hum: ");
-  Serial.print(radioPacket.humidity);
-  Serial.print(" D: ");
-  Serial.println(radioPacket.distance);
-  Serial.println("Values read and stored!");  //for debugging
+      Serial.print("Temperature: ");
+      Serial.print(radioPacket.temperature);
+      Serial.print(" Hum: ");
+      Serial.print(radioPacket.humidity);
+      Serial.print(" Distance: ");
+      Serial.println(radioPacket.distance);
+      Serial.println("Values read and stored!");  //for debugging
 #endif
+      return true;
+    }
+  }
+  return false;
 }
 void readBatteryPercentage() {
   int readValue = analogRead(VBAT_PIN);
