@@ -1,43 +1,52 @@
 #include <stdio.h>
 #include <string.h>
 #include "OutsideMeasurer.h"
-OutsideMeasurer::OutsideMeasurer(RF24 *radio, int index) {
+OutsideMeasurer::OutsideMeasurer(RF24 *radio, int index)
+{
   this->radio = radio;
   this->index = index;
   isInside = 0;
 }
-OutsideMeasurer::~OutsideMeasurer() {
+OutsideMeasurer::~OutsideMeasurer()
+{
   delete[] outsideOutput;
 }
 
-void OutsideMeasurer::readValues() {
+void OutsideMeasurer::readValues()
+{
 
   ReceiveBuffer buffer;
   radio->read(&buffer, sizeof(buffer));
-  //Validate data:
-  if (buffer.temperature > 50 || buffer.temperature < -30
-      || buffer.humidity > 100 || buffer.humidity < 0
-      || buffer.measuredDistance < 0) {
-    //Invalid data
+  // Validate data:
+  if (buffer.temperature > 50 || buffer.temperature < -30 || buffer.humidity > 100 || buffer.humidity < 0 || buffer.measuredDistance < 0 || buffer.measuredDistance > 200)
+  {
+    // Invalid data
     return;
   }
   this->temperature = buffer.temperature;
   this->humidity = buffer.humidity;
-  Serial.print("Measured: ");
-  Serial.println(buffer.measuredDistance);
   int snowDepth = mountingHeight - buffer.measuredDistance;
-  snowDepth = ((snowDepth + 5 / 2) / 5) * 5;  //round snowDepth to closest multiple of 5
+  // round snowDepth to closest multiple of 5:
+  snowDepth = ((snowDepth + 5 / 2) / 5) * 5;
   this->snowDepth = snowDepth;
   this->batteryLevel = buffer.batteryLevel;
 }
-const char *OutsideMeasurer::getOutput() {
+
+const char *OutsideMeasurer::getOutput()
+{
+  // Clear c-string:
   const int SNOW_STRING_LEN = 16;
-  const int OUTSIDE_OUTPUT_LEN = SNOW_STRING_LEN + OUTPUT_BUFFER_SIZE;
+  const int OUTSIDE_OUTPUT_LEN = SNOW_STRING_LEN + OUTPUT_BUFFER_SIZE + 1;
   delete[] outsideOutput;
   outsideOutput = new char[OUTSIDE_OUTPUT_LEN];
+
   outsideOutput[0] = '\0';
   int availableSpace = OUTSIDE_OUTPUT_LEN - strlen(outsideOutput) - 1;
+
+  // Copy base class data:
   strncpy(outsideOutput, Measurer::getOutput(), availableSpace);
+
+  // Add snow data:
   char snowString[SNOW_STRING_LEN] = "\0";
   availableSpace = SNOW_STRING_LEN - 1;
   snprintf(snowString, availableSpace, "\nSnow %i cm", snowDepth);
@@ -45,12 +54,15 @@ const char *OutsideMeasurer::getOutput() {
   strncat(outsideOutput, snowString, availableSpace);
   return outsideOutput;
 }
-int OutsideMeasurer::getSnowDepth() {
+
+int OutsideMeasurer::getSnowDepth()
+{
   return snowDepth;
 }
-void OutsideMeasurer::setMountingHeight(int newHeight) {
+void OutsideMeasurer::setMountingHeight(int newHeight)
+{
   mountingHeight = newHeight;
-  //Save value to flash:
+  // Save value to flash:
   EEPROM.write(index - 1, mountingHeight);
   EEPROM.commit();
 }
