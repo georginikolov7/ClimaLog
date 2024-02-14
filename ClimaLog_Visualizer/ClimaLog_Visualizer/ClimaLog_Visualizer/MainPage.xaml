@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ClimaLog_Visualizer.MainPage">
+   
+    <ContentPage.Content>
+        <StackLayout>
+            <Label Text="ClimaLog Kartala"
+                   FontSize="28"
+                   FontFamily="Helvetica"
+                   HorizontalTextAlignment="Center"
+                   BackgroundColor="DodgerBlue"
+                   Padding="10"
+                   TextColor="White"/>
+            <Label x:Name="DateLabel"
+                   Text="{Binding MeasureDate}"
+                   FontSize="24"
+                   HorizontalTextAlignment="Center"
+                   Margin="0,10,0,20"/>
+
+            <CollectionView x:Name="DataVisualizer"
+                        ItemsSource="{Binding Measurers}"
+                        SelectionMode="Single">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Padding="20"
+                              RowDefinitions="Auto, *"
+                              ColumnDefinitions="*">
+                            <Label Grid.Row="0"
+                                   Text="{Binding Name}"
+                                   FontSize="24"
+                                   FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center"
+                                   Padding="0,0,0,10"/>
+                            <Label Grid.Row="1"
+                                   Text="{Binding Output}"
+                                   LineHeight="1.5 "
+                                   FontSize="18"/>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+
+
+            <!--<Frame>
+            <StackLayout>
+                <Label Text="INSIDE"
+                           
+                       HorizontalTextAlignment="Center"
+                       Margin="0,0,0,50"/>
+                <Label Text="Temperature:" FontSize="18"
+                           x:Name="InsideTempLabel"/>
+                <Label Text="Humidity:" FontSize="18"/>
+            </StackLayout>
+
+            </Frame>
+            <Frame>
+                <StackLayout>
+                    <Label Text="OUTSIDE"
+                       HorizontalTextAlignment="Center"
+                       Margin="0,0,0,50"/>
+                    <Label Text="Temperature:" FontSize="18"/>
+                    <Label Text="Humidity:" FontSize="18"/>
+                    <Label Text="SnowDepth:" FontSize="18"/>
+                    <Label Text="Battery:" FontSize="18"/>
+                </StackLayout>
+
+            </Frame> -->
+        </StackLayout>
+    </ContentPage.Content>
+</ContentPage>

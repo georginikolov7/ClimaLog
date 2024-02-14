@@ -417,7 +417,7 @@ void loop()
   {
     // Serial.printf("Current hour: %i\n", currentHour);
     // Serial.printf("Last hour: %i\n", lastHour);
-    if (currentHour - lastHour == HTTP_SEND_INTERVAL)
+    if (currentHour - lastHour == HTTP_SEND_INTERVAL || currentHour == 0)
     {
       HTTPS_sent = false;
       lastHour = currentHour;
@@ -444,16 +444,6 @@ void loop()
 #endif
   }
 }
-
-
-
-
-
-
-
-
-
-
 
 // Brooks was here...
 
