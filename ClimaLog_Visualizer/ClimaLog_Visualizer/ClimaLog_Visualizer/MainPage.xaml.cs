@@ -5,16 +5,38 @@ using System.Diagnostics;
 using System.Net.Http;
 using Xamarin.Forms;
 using Newtonsoft.Json;
+using System.ComponentModel;
+using ClimaLog_Visualizer.Services;
+using ClimaLog_Visualizer.Models;
+using System.Linq;
+
 namespace ClimaLog_Visualizer
 {
-    public partial class MainPage : ContentPage
+
+
+    //TODO:
+    //1) Add refresh option + animation
+    //2) Error handling
+    public partial class MainPage : ContentPage, INotifyPropertyChanged
     {
-        private string googleScriptURL = @"https://script.google.com/macros/s/AKfycbwPVQj9ozgZ-AVm4ROIXJ0XxymcB2ekPrGLKMVVQOsciNQpWbbY9tSoP_mLMrJI1u4Vgg/exec";
-        public IList<IMeasurer> Measurers { get; private set; }
-        public DateTime MeasureDate { get; private set; }
+        private const string googleScriptURL = @"https://script.google.com/macros/s/AKfycbwPVQj9ozgZ-AVm4ROIXJ0XxymcB2ekPrGLKMVVQOsciNQpWbbY9tSoP_mLMrJI1u4Vgg/exec";
+        private DateTime date;
+        public IList<IMeasurer> Measurers
+        {
+            get; private set;
+        }
+        public DateTime MeasureDate
+        {
+            get => date; private set
+            {
+                date = value;
+                OnPropertyChanged(nameof(MeasureDate));
+            }
+        }
         public MainPage()
         {
             InitializeComponent();
+            MeasureDate = DateTime.Now;
             BindingContext = this;
 
         }
@@ -26,10 +48,34 @@ namespace ClimaLog_Visualizer
         }
         private void AppendData(string JSON)
         {
-            //Split the JSON manually:
-            //{"Date":"2024-02-11T07:00:02.656Z","InsideTemperature":21.6,"InsideHumidity":51,"OutsideTemperature":4.2,"OutsideHumidity":68,"OutsideSnow depth":5,"OutsideBattery level":79}
-            object obj = JsonConvert.DeserializeObject(JSON);
-            Debug.WriteLine(obj);
+            
+
+            //{"Date":"2024-02-11T07:00:02.656Z","Inside":"{\"Temperature\":21.6,\"Humidity\":51}","Outside 1":"{\"Temperature\":4.2,\"Humidity\":68,\"Snow depth\":5,\"Battery level\":79}"}
+
+            //main JSON
+            Dictionary<string, string> mainJSON = JsonConvert.DeserializeObject<Dictionary<string, string>>(JSON);
+
+            Measurers = new List<IMeasurer>();
+
+            foreach (var kvp in mainJSON)
+            {
+                switch (kvp.Key.Split()[0])
+                {
+                    case "Inside":
+                        Measurers.Add(JsonConvert.DeserializeObject<InsideMeasurer>(kvp.Value));
+                        break;
+                    case "Outside":
+                        Measurers.Add(JsonConvert.DeserializeObject<OutsideMeasurer>(kvp.Value));
+                        break;
+                    case "Date":
+                        string dateString = mainJSON["Date"];
+                        MeasureDate = DateTime.Parse(dateString);
+                        break;
+                    default:
+                        throw new ArgumentException("Invalid argument in JSON");
+                }
+            }
+            OnPropertyChanged(nameof(Measurers));
         }
         private async void SendDoGetRequestToGoogle()
         {
@@ -42,7 +88,7 @@ namespace ClimaLog_Visualizer
                     string json = await response.Content.ReadAsStringAsync();
                     Debug.WriteLine(json);
                     AppendData(json);
-                   
+
                 }
                 else
                 {
@@ -51,7 +97,20 @@ namespace ClimaLog_Visualizer
                 }
             }
 
-            
+
         }
+        protected void OnPropertyChanged(string propertyName)
+        {
+            // Notify the UI of property changes
+            OnPropertyChanged(new PropertyChangedEventArgs(propertyName));
+        }
+
+        protected void OnPropertyChanged(PropertyChangedEventArgs e)
+        {
+            // Notify the UI of property changes
+            PropertyChanged?.Invoke(this, e);
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
     }
 }

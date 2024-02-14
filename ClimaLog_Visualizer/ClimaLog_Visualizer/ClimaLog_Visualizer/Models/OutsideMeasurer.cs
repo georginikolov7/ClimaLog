@@ -13,8 +13,8 @@ namespace ClimaLog_Visualizer.Models
         public OutsideMeasurer(int index, double temperature, double humidity, int snowDepth, int batPercentage) : base(temperature, humidity)
         {
             Index = index;
-            SnowDepth = snowDepth;
-            BatteryLevel = batPercentage;
+            Snow = snowDepth;
+            Battery = batPercentage;
         }
 
         public int Index
@@ -23,7 +23,7 @@ namespace ClimaLog_Visualizer.Models
             set { index = value; }
         }
 
-        public int SnowDepth
+        public int Snow
         {
             get => snowDepth;
             set
@@ -34,7 +34,7 @@ namespace ClimaLog_Visualizer.Models
                 }
             }
         }
-        public int BatteryLevel
+        public int Battery
         {
             get => batteryLevel;
             set
@@ -46,14 +46,15 @@ namespace ClimaLog_Visualizer.Models
             }
         }
         public string Name => "Outside Measurer " + Index;
+
+        public override string Output => ToString();
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine(Name);
             sb.AppendLine(base.ToString());
-            sb.AppendLine($"{nameof(SnowDepth)}: {snowDepth} cm");
-            sb.AppendLine($"{nameof(BatteryLevel)}: {BatteryLevel} %");
-            return base.ToString().Trim();
+            sb.AppendLine($"{nameof(Snow)}: {snowDepth} cm");
+            sb.AppendLine($"{nameof(Battery)}: {Battery} %");
+            return sb.ToString().Trim();
         }
     }
 }

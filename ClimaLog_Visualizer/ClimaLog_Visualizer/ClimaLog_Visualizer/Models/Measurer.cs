@@ -14,7 +14,7 @@ namespace ClimaLog_Visualizer.Models
             Temperature = temp;
             Humidity = hum;
         }
-        public double Temperature
+        public virtual double Temperature
         {
             get => temperature; private set
             {
@@ -24,18 +24,18 @@ namespace ClimaLog_Visualizer.Models
                 }
             }
         }
-        public double Humidity
+        public virtual double Humidity
         {
             get => humidity; private set
             {
-                if (value > 0 && value <= 100)
+                if (value >= 0 && value <= 100)
                 {
                     humidity = value;
                 }
             }
         }
 
-        public string Output => ToString();
+        public abstract string Output { get; }
 
 
         public override string ToString()
