@@ -46,8 +46,8 @@ const char *hostID = "AKfycbxsifh2gFosBuIHMA6PFGe74tT1oHAJoEsMCbjFBev2n1fIuR0mgs
 HTTPClient https;                                                                                // client object
 
 // Obtaining the time:
-int currentHour = 0;
-int lastHour = 0; // used to store the last hour when https request was sent
+struct tm currentTime;
+struct tm lastTime; // used to store the last time when https request was sent
 
 const long gmtOffset_sec = 7200;  // UTC +2 hours id +7200 seconds
 const int daylightOffset_sec = 0; // not summer time
@@ -97,8 +97,8 @@ OutsideMeasurer *outsideMeasurers[OUTSIDE_MODULES_COUNT] = {
 DisplayController displayController(&display, &insideMeasurer, outsideMeasurers, OUTSIDE_MODULES_COUNT);
 
 // Control variables and constants:
-bool HTTPS_sent = false;
-const int HTTP_SEND_INTERVAL = 1; // send request once every  hour
+bool HTTPS_sent = true;
+const int HTTP_SEND_INTERVAL = 30; // send request every 30 minutes
 unsigned long lastInsideReadTime = 0;
 #define INSIDE_READ_INTERVAL 120000 // read temp/hum inside once every 2 mins
 
@@ -181,20 +181,18 @@ void setupRadio()
   radio.startListening();
 }
 
-//@brief gets the current hour from the NTP server
-bool getCurrentHour()
-{
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo))
-  {
-#ifdef USESERIAL
-    Serial.println("Failed to obtain time");
-#endif
-    return false;
-  }
-  currentHour = timeinfo.tm_hour;
-  return true;
-}
+// //@brief gets the current hour from the NTP server
+// bool getCurrentTime()
+// {
+//   if (!getLocalTime(&currentTime))
+//   {
+// #ifdef USESERIAL
+//     Serial.println("Failed to obtain time");
+// #endif
+//     return false;
+//   }
+//   return true;
+// }
 
 //@brief: Establish connection to the https server and request url
 //@params url with data to send
@@ -302,19 +300,12 @@ void setup()
   delay(500);
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
-  // Obtain hour for HTTPS sender:
-  if (!getCurrentHour())
+  // Obtain current time:
+  if (!getLocalTime(&currentTime))
   {
 #ifdef USESERIAL
     Serial.println("Failed to obtain time from NTC");
 #endif
-  }
-  else
-  {
-#ifdef USESERIAL
-    Serial.printf("Current hour: %i\n", currentHour);
-#endif
-    lastHour = currentHour;
   }
 
   SPI.begin();
@@ -413,37 +404,78 @@ void loop()
     displayController.displayData(); // if inside module is showing on display => update values
     lastInsideReadTime = millis();
   }
-  if (WiFi.status() == WL_CONNECTED && getCurrentHour())
+
+  if (WiFi.status() == WL_CONNECTED)
   {
-    // Serial.printf("Current hour: %i\n", currentHour);
-    // Serial.printf("Last hour: %i\n", lastHour);
-    if (currentHour - lastHour == HTTP_SEND_INTERVAL || currentHour == 0)
-    {
-      HTTPS_sent = false;
-      lastHour = currentHour;
-    }
-    // Send https request:
-    if (!HTTPS_sent || readCommand == "HTTPS")
-    {
-      // build the https url:
-      const char *url = buildHTTPSURL();
-#ifdef USESERIAL
-      Serial.println(url);
-#endif
-      if (sendHTTPSRequest(url))
+
+    if (getLocalTime(&currentTime)){
+        
+      int elapsedMins = (currentTime.tm_hour * 60 + currentTime.tm_min) - (lastTime.tm_hour * 60 + lastTime.tm_min);
+      if (elapsedMins == HTTP_SEND_INTERVAL)
       {
-        HTTPS_sent = true;
+        HTTPS_sent = false;
+        lastTime.tm_hour = currentTime.tm_hour;
+        lastTime.tm_min = currentTime.tm_min;
       }
-      delete[] url;
+      // Send https request:
+      if (!HTTPS_sent || readCommand == "HTTPS")
+      {
+
+        #ifdef USESERIAL
+  Serial.printf("Sending http request. Current time: %i:%i\n", currentTime.tm_hour, currentTime.tm_min);
+#endif
+        // build the https url:
+        const char *url = buildHTTPSURL();
+#ifdef USESERIAL
+        Serial.println(url);
+#endif
+        if (sendHTTPSRequest(url))
+        {
+          HTTPS_sent = true;
+        }
+        delete[] url;
+      }
+    }
+    else
+    {
+#ifdef USESERIAL
+      Serial.println("Error! Could not get time from ntp server!");
+#endif
     }
   }
   else
   {
 #ifdef USESERIAL
-    Serial.println("WiFi disconnected");
+    Serial.println("Error! WiFi disconnected!");
 #endif
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Brooks was here...
 
