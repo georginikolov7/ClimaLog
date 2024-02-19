@@ -1,0 +1,61 @@
+
+function parseLastDataToJSON() {
+  // Open the active sheet
+  const bookId='1vkVtWXBeIjBXM59YJNachYMtTnYDph5g_5YpIcnC5xU';  // Change the sheetId according to your sheets table
+  var sheet = SpreadsheetApp.openById(bookId).getActiveSheet();
+  
+  // Get the last row with data
+  var lastRow = sheet.getLastRow();
+  
+  // Get all values in the last row
+  var rowData = sheet.getRange(lastRow, 1, 1, sheet.getLastColumn()).getValues()[0];
+  console.log(rowData);
+  // Create an object to store the data
+  var dataObject = {};
+
+  //Store the data:
+  let date=rowData[0];
+  dataObject['Date']=date;
+
+  let insideData={};
+
+  insideData["Temperature"]=rowData[1];
+  insideData["Humidity"]=rowData[2];
+  dataObject["Inside"]=JSON.stringify(insideData);
+  console.log(dataObject);
+  // Loop through the headers and values to add the outside measurers values
+
+  let count=(rowData.length-3)/4; //outside measurers count
+    for(var i=0;i<count;i++){
+      let outsideData={};
+      for(var j=3+4*i;j<3+4*i+4;j++){
+        outsideData[sheet.getRange(2,j+1).getValue()]=rowData[j];
+      }
+      outsideData["Index"]=i+1;
+      dataObject["Outside "+(i+1)]=JSON.stringify(outsideData);
+    }
+
+  // Convert the data object to JSON
+  var jsonData = JSON.stringify(dataObject);
+  
+  Logger.log(jsonData); // Log the JSON data (you can view it in the Apps Script logs)
+
+  return jsonData; // Return the JSON data
+}
+
+function doGet(e){
+  // Call the getLastRowAsJson function to get the JSON data
+  var jsonData = parseLastDataToJSON();
+  
+  // Set the content type of the response
+  var contentType = ContentService.MimeType.JSON;
+  
+  // Create the ContentService response
+  var output = ContentService.createTextOutput(jsonData).setMimeType(contentType);
+  
+  // // Allow cross-origin resource sharing (CORS)
+  // output.addHeader('Access-Control-Allow-Origin', '*');
+  
+  // Return the response
+  return output;
+}
