@@ -98,7 +98,7 @@ DisplayController displayController(&display, &insideMeasurer, outsideMeasurers,
 
 // Control variables and constants:
 bool HTTPS_sent = true;
-const int HTTP_SEND_INTERVAL = 30; // send request every 30 minutes
+const int HTTP_SEND_INTERVAL = 15; // send request every 30 minutes
 unsigned long lastInsideReadTime = 0;
 #define INSIDE_READ_INTERVAL 120000 // read temp/hum inside once every 2 mins
 
@@ -167,7 +167,7 @@ bool selectWifiNetwork()
 void setupRadio()
 {
   radio.setDataRate(RF24_250KBPS);
-  radio.setPALevel(RF24_PA_MAX);
+  radio.setPALevel(RF24_PA_MAX,true);
   radio.setPayloadSize(sizeof(ReceiveBuffer));
   // radio.setRetries
 
@@ -181,18 +181,6 @@ void setupRadio()
   radio.startListening();
 }
 
-// //@brief gets the current hour from the NTP server
-// bool getCurrentTime()
-// {
-//   if (!getLocalTime(&currentTime))
-//   {
-// #ifdef USESERIAL
-//     Serial.println("Failed to obtain time");
-// #endif
-//     return false;
-//   }
-//   return true;
-// }
 
 //@brief: Establish connection to the https server and request url
 //@params url with data to send
@@ -411,7 +399,9 @@ void loop()
     if (getLocalTime(&currentTime)){
         
       int elapsedMins = (currentTime.tm_hour * 60 + currentTime.tm_min) - (lastTime.tm_hour * 60 + lastTime.tm_min);
-      if (elapsedMins == HTTP_SEND_INTERVAL)
+
+      //Send http request if time has elapsed or it is midnight
+      if (elapsedMins >= HTTP_SEND_INTERVAL || (currentTime.tm_hour==0 && lastTime.tm_hour==23))
       {
         HTTPS_sent = false;
         lastTime.tm_hour = currentTime.tm_hour;
@@ -422,7 +412,7 @@ void loop()
       {
 
         #ifdef USESERIAL
-  Serial.printf("Sending http request. Current time: %i:%i\n", currentTime.tm_hour, currentTime.tm_min);
+  Serial.printf("Sending http request. Current time: %i:%i\n\n", currentTime.tm_hour, currentTime.tm_min);
 #endif
         // build the https url:
         const char *url = buildHTTPSURL();
