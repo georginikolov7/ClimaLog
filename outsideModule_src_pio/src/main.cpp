@@ -20,7 +20,7 @@
 #define SLEEPTIME_MILLISECONDS 300000 // define the sleep time of 5 minute(s) WARNING: Each module must have different sleep times
 
 // Data validation:
-#define MAX_MOUNTING_HEIGHT 150
+#define MAX_MOUNTING_HEIGHT 200   //sensor measures to 2 meters max
 #define MEASURES_COUNT 5
 const int MAX_MEASURE_RETRIES = 3; // measures up to 3 incorrect values
 

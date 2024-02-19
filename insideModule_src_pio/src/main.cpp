@@ -42,7 +42,7 @@ const char savedNetworks[][50] = {
     "kartala", "kartala1333", "AndroidAPe456", "12345678", "VIVACOM 4G WiFi_2C8D", "00505022", "Nokolovi UBMT", "bvnSP0620"};
 
 const int httpsPort = 443;
-const char *hostID = "AKfycbxsifh2gFosBuIHMA6PFGe74tT1oHAJoEsMCbjFBev2n1fIuR0mgsFi8s6Jw5M5Rbmm"; // the id of the google apps script
+const char *hostID = "AKfycby3nkAQKVJ2M6Oo7USsUUVcAEmSNu6NRPp86zZgQFSBUEhfyxwjZn7Erk3E3MQoIdAYiQ"; // the id of the google apps script
 HTTPClient https;                                                                                // client object
 
 // Obtaining the time:

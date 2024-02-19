@@ -19,7 +19,7 @@ namespace ClimaLog_Visualizer
     //2) Error handling
     public partial class MainPage : ContentPage, INotifyPropertyChanged
     {
-        private const string googleScriptURL = @"https://script.google.com/macros/s/AKfycbwPVQj9ozgZ-AVm4ROIXJ0XxymcB2ekPrGLKMVVQOsciNQpWbbY9tSoP_mLMrJI1u4Vgg/exec";
+        private const string googleScriptURL = @"https://script.google.com/macros/s/AKfycbxOXIwKKBMgATxoWHVs-h-vnN64kPiSi1YzX-6Rf5EsbYpFD05Ggv6QYY4OG6dHRMeA/exec";
         private DateTime date;
         public IList<IMeasurer> Measurers
         {
