@@ -3,13 +3,15 @@
 #include "Measurer.h"
 #include <DHT.h>
 
-class InsideMeasurer : public Measurer {
+class InsideMeasurer : public Measurer
+{
 public:
-  InsideMeasurer(DHT* dhtSensor);
+  InsideMeasurer(const char *name, DHT *dhtSensor);
   ~InsideMeasurer();
   void readValues() override;
+
 private:
-  DHT* dhtSensor;
+  DHT *dhtSensor;
 };
 
 #endif

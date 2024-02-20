@@ -10,6 +10,7 @@
 
 struct ReceiveBuffer
 {
+
   int32_t humidity;
   int32_t batteryLevel;
   float temperature;
@@ -19,7 +20,7 @@ struct ReceiveBuffer
 class OutsideMeasurer : public Measurer
 {
 public:
-  OutsideMeasurer(RF24 *radio, int index);
+  OutsideMeasurer(const char *name, int indexOfModule, RF24 *radio, bool isBatteryPowered=true);
   ~OutsideMeasurer();
   void setMountingHeight(int newHeight);
   void heightSetup(Button *setButton, Display *display);
@@ -49,13 +50,15 @@ public:
   int getSnowDepth();
 
 private:
+  int indexOfModule = 0;
   RF24 *radio;
+  bool isBatteryPowered = true;
   int snowDepth = 0;
-  int batteryLevel = 0;       // outside module battery level in %
-  int mountingHeight = 0;     // set mounting height in cm
+  int batteryLevel = 0;   // outside module battery level in %
+  int mountingHeight = 0; // set mounting height in cm
+
   const int MAX_HEIGHT = 110; // maximum mounitng height in cm
   const int MIN_HEIGHT = 50;  // minimal mounting height in cm
   const int LOW_BATTERY_PERCENTAGE = 30;
-  char *outsideOutput;
 };
 #endif

@@ -23,7 +23,7 @@
 #include "OLEDDisplay.h"
 #include "DisplayController.h"
 #include "ValueSelector.h"
-
+#include "Icons.h"
 // For sending the data to the web API:
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -34,7 +34,8 @@
 #define USESERIAL // uncomment to use serial monitor for debugging
 
 // WiFi:
-const int WIFI_CONNECT_TIME_LIMIT = 60000; // 1 minute for connecting
+const int WIFI_CONNECT_TIME_LIMIT = 40000; // 40seconds  for connecting
+
 #define SAVED_NETWORKS_COUNT 4
 const int NETWORKS_ARRAY_SIZE = SAVED_NETWORKS_COUNT * 2;
 // array for holding wifi networks (even index->ssid, odd index-> pass )
@@ -43,7 +44,7 @@ const char savedNetworks[][50] = {
 
 const int httpsPort = 443;
 const char *hostID = "AKfycby3nkAQKVJ2M6Oo7USsUUVcAEmSNu6NRPp86zZgQFSBUEhfyxwjZn7Erk3E3MQoIdAYiQ"; // the id of the google apps script
-HTTPClient https;                                                                                // client object
+HTTPClient https;                                                                                  // client object
 
 // Obtaining the time:
 struct tm currentTime;
@@ -56,9 +57,9 @@ const char *ntpServer = "pool.ntp.org";
 
 // DHT22 Sensor:
 #define INSIDE_DHT_TYPE DHT22
-#define INSIDE_DHT_PIN 13                       // DHT22 pin
-DHT insideDHT(INSIDE_DHT_PIN, INSIDE_DHT_TYPE); // dht22 temp/hum sensor for inside
-InsideMeasurer insideMeasurer(&insideDHT);      // create instance for measuring temp/humidity inside
+#define INSIDE_DHT_PIN 13                        // DHT22 pin
+DHT insideDHT(INSIDE_DHT_PIN, INSIDE_DHT_TYPE);  // dht22 temp/hum sensor for inside
+InsideMeasurer insideMeasurer("In", &insideDHT); // create instance for measuring temp/humidity inside
 
 // OLED display:
 #define I2C_DATA 21                        // I2C pin for data
@@ -85,20 +86,20 @@ uint8_t readAddresses[OUTSIDE_MODULES_COUNT][6] = {"1OUTM"}; // addresses for ou
 uint8_t receivePipe;                                         // used to store the pipe num where data was received
 RF24 radio(CE_PIN, CS_PIN);                                  // radio object
 
-#define DEFAULT_MOUNTING_HEIGHT 80          // modules work best when mounted at 80 cm
-OutsideMeasurer outsideMeasurer(&radio, 1); // create instance for receiving data from radio module (outside data)
+#define DEFAULT_MOUNTING_HEIGHT 80                   // modules work best when mounted at 80 cm
+OutsideMeasurer outsideMeasurer("Out 1", 0, &radio); // create instance for receiving data from radio module (outside data)
 // OutsideMeasurer out2(&radio, 2);
 
 // OutsideMeasurer pointer to array:
 OutsideMeasurer *outsideMeasurers[OUTSIDE_MODULES_COUNT] = {
     &outsideMeasurer};
 
-// Display controller object, used for toggling display mode
+// Display controller object, used for toggling display mode:
 DisplayController displayController(&display, &insideMeasurer, outsideMeasurers, OUTSIDE_MODULES_COUNT);
 
 // Control variables and constants:
 bool HTTPS_sent = true;
-const int HTTP_SEND_INTERVAL = 15; // send request every 30 minutes
+const int HTTP_SEND_INTERVAL = 30; // send request every 30 minutes
 unsigned long lastInsideReadTime = 0;
 #define INSIDE_READ_INTERVAL 120000 // read temp/hum inside once every 2 mins
 
@@ -129,7 +130,6 @@ void heightSetup()
 
 bool selectWifiNetwork()
 {
-
   WiFi.mode(WIFI_STA);                                                              // set esp32 as station
   ValueSelector vs(&display, &setButton, "LAN");                                    // select LAN from the saved networks array
   int index = vs.selectStringValueFromArray(savedNetworks, NETWORKS_ARRAY_SIZE, 2); // get the index of the selected ssid
@@ -167,7 +167,7 @@ bool selectWifiNetwork()
 void setupRadio()
 {
   radio.setDataRate(RF24_250KBPS);
-  radio.setPALevel(RF24_PA_MAX,true);
+  radio.setPALevel(RF24_PA_MAX, true);
   radio.setPayloadSize(sizeof(ReceiveBuffer));
   // radio.setRetries
 
@@ -180,7 +180,6 @@ void setupRadio()
   // Set radio in read mode:
   radio.startListening();
 }
-
 
 //@brief: Establish connection to the https server and request url
 //@params url with data to send
@@ -285,6 +284,7 @@ void setup()
 
   // Establish Wifi connection/config time settings:
   selectWifiNetwork();
+
   delay(500);
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
@@ -295,6 +295,12 @@ void setup()
     Serial.println("Failed to obtain time from NTC");
 #endif
   }
+  else
+  {
+#ifdef USESERIAL
+    Serial.printf("\n%i:%i\n", currentTime.tm_hour, currentTime.tm_min);
+#endif
+  }
 
   SPI.begin();
 
@@ -302,6 +308,9 @@ void setup()
   EEPROM.begin(OUTSIDE_MODULES_COUNT); // we need to keep one int value (mounting height) for every outside module
 
   // Set mounting heights on each outside module:
+#ifdef USESERIAL
+  Serial.println("Reading stored mounting heights");
+#endif
   for (int i = 0; i < OUTSIDE_MODULES_COUNT; i++)
   {
     int heightFromFlash = EEPROM.read(i);
@@ -316,7 +325,9 @@ void setup()
       outsideMeasurers[i]->setMountingHeight(heightFromFlash);
     }
   }
-
+#ifdef USESERIAL
+  Serial.println("Stored mounting heights read");
+#endif
   insideDHT.begin(); // initialize the inside DHT
   delay(500);        // time to start up DHT
   insideMeasurer.readValues();
@@ -362,9 +373,9 @@ void loop()
     // receivePipe corresponds to index of outsideMeasurer + 1
     outsideMeasurers[receivePipe - 1]->readValues();
 #ifdef USESERIAL
-    Serial.printf("Received data from outside module %i\n", receivePipe); // for debuging
+    Serial.printf("Received data from outside module %i\n", receivePipe); // for debugging
     Serial.println(outsideMeasurer.getOutput());
-    Serial.printf("Battery at: %i\n", outsideMeasurer.getBatteryLevel());
+    Serial.printf("Battery at: %i %%\n", outsideMeasurer.getBatteryLevel());
 #endif
     displayController.displayData(); // update values on display
   }
@@ -375,13 +386,18 @@ void loop()
     heightSetup();
   }
 
+  // Change WiFi network by longpressing display btn:
+  if (displayButton.isLongPressed())
+  {
+    selectWifiNetwork();
+  }
   // change displayed data if button is pressed:
   if (displayButton.isShortPressed())
   {
     displayController.changeDisplayMode();
     displayController.displayData();
 #ifdef USESERIAL
-    Serial.printf("CHANGED MODE: %i\n", displayController.getIterator());
+    Serial.printf("CHANGED MODE: %i\n", displayController.getCurrentIndex());
 #endif
   }
 
@@ -396,12 +412,13 @@ void loop()
   if (WiFi.status() == WL_CONNECTED)
   {
 
-    if (getLocalTime(&currentTime)){
-        
+    if (getLocalTime(&currentTime))
+    {
+
       int elapsedMins = (currentTime.tm_hour * 60 + currentTime.tm_min) - (lastTime.tm_hour * 60 + lastTime.tm_min);
 
-      //Send http request if time has elapsed or it is midnight
-      if (elapsedMins >= HTTP_SEND_INTERVAL || (currentTime.tm_hour==0 && lastTime.tm_hour==23))
+      // Send http request if time has elapsed or it is midnight
+      if (elapsedMins >= HTTP_SEND_INTERVAL || (currentTime.tm_hour == 0 && lastTime.tm_hour == 23))
       {
         HTTPS_sent = false;
         lastTime.tm_hour = currentTime.tm_hour;
@@ -411,8 +428,8 @@ void loop()
       if (!HTTPS_sent || readCommand == "HTTPS")
       {
 
-        #ifdef USESERIAL
-  Serial.printf("Sending http request. Current time: %i:%i\n\n", currentTime.tm_hour, currentTime.tm_min);
+#ifdef USESERIAL
+        Serial.printf("Sending http request. Current time: %i:%i\n\n", currentTime.tm_hour, currentTime.tm_min);
 #endif
         // build the https url:
         const char *url = buildHTTPSURL();
@@ -440,32 +457,6 @@ void loop()
 #endif
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // Brooks was here...
 

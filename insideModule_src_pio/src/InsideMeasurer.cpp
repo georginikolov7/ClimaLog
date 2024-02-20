@@ -1,16 +1,16 @@
 #include <Arduino.h>
 #include "InsideMeasurer.h"
 #include <DHT.h>
-InsideMeasurer::InsideMeasurer(DHT *dhtSensor)
+InsideMeasurer::InsideMeasurer(const char *name, DHT *dhtSensor) : Measurer(name)
 {
   this->dhtSensor = dhtSensor;
-  isInside = 1;
 };
 InsideMeasurer::~InsideMeasurer()
 {
 }
 void InsideMeasurer::readValues()
 {
+  //To do data validation + retrier
   temperature = dhtSensor->readTemperature();
   float readHum = dhtSensor->readHumidity();
   // if (isnan(readHum)) {

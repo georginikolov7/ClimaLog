@@ -2,57 +2,57 @@
 #include <string.h>
 #include "DisplayController.h"
 #include <Arduino.h>
+#include "Icons.h"
+#include "WiFi.h"
 
-DisplayController::DisplayController(Display* display, InsideMeasurer* insideMeasurer, OutsideMeasurer** outsideMeasurers, int outsideMeasurersCount) {
+DisplayController::DisplayController(Display *display, InsideMeasurer *insideMeasurer, OutsideMeasurer **outsideMeasurers, int outsideMeasurersCount)
+{
   this->display = display;
   const int measurersCount = outsideMeasurersCount + 1;
   this->outsideMeasurers = outsideMeasurers;
-  this->measurers = new Measurer*[measurersCount];
+  this->measurers = new Measurer *[measurersCount];
   this->measurersCount = measurersCount;
-  //1st element is the insideMeasurer:
+  // 1st element is the insideMeasurer:
   measurers[0] = insideMeasurer;
 
-  //Fill rest of array with outsideMeasurers:
-  for (int i = 0; i < outsideMeasurersCount; i++) {
+  // Fill rest of array with outsideMeasurers:
+  for (int i = 0; i < outsideMeasurersCount; i++)
+  {
     measurers[i + 1] = outsideMeasurers[i];
   }
 }
-DisplayController::~DisplayController() {
+DisplayController::~DisplayController()
+{
   delete[] measurers;
 }
 
-void DisplayController::changeDisplayMode() {
-  iterator = (iterator + 1) % measurersCount;
-  //increments the iterator by 1. Keeps it inside the bounds of measurers array
+void DisplayController::changeDisplayMode()
+{
+  index = (index + 1) % measurersCount;
+  // increments the iterator by 1. Keeps it inside the bounds of measurers array
 }
 
-void DisplayController::displayData() {
-
-  const int OUTPUT_BUFFER_SIZE = 254;
-  char output[OUTPUT_BUFFER_SIZE] = "\0";  //output string buffer
-  int availableSpace = OUTPUT_BUFFER_SIZE - 1;
+void DisplayController::displayData()
+{
   display->resetDisplay();
+  if (index >= 1 && outsideMeasurers[index - 1]->batLevelIsLow())
+  {
+    // size of outsideMeasurers array is measurers size - 1 => index is iterator - 1
 
-  if (measurers[iterator]->isInsideModule() == 1) {
-    //selected module is inside
-    strncat(output, "IN\n", availableSpace);
-  } else {
-    //selected module is outside:
-    int index = measurers[iterator]->getIndex();  //get the index (which outside module is this?):
-    availableSpace = OUTPUT_BUFFER_SIZE - strlen(output) - 1;
-    snprintf(output, availableSpace, "OUT %i\n", index);
-
-    if (outsideMeasurers[iterator - 1]->batLevelIsLow()) {
-      //size of outsideMeasurers array is measurers size - 1 => index is iterator - 1
-      //Draw the bitmap on the display:
-      int xPosition = display->getWidth() - BATTERY_INDICATOR_WIDTH;
-      display->drawBitmap(xPosition, 0, batteryIndicator, BATTERY_INDICATOR_WIDTH, BATTERY_INDICATOR_HEIGHT);
-    }
+    // Draw the bitmap on the display:
+    int xPosition = display->getWidth() - BATTERY_INDICATOR_WIDTH;
+    display->drawBitmap(xPosition, 0, batteryIndicator, BATTERY_INDICATOR_WIDTH, BATTERY_INDICATOR_HEIGHT);
   }
-  availableSpace = OUTPUT_BUFFER_SIZE - strlen(output) - 1;
-  strncat(output, measurers[iterator]->getOutput(), availableSpace);
-  display->writeText(output);  //write the full output on the OLED
+
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    // Display WiFi icon below battery icon
+    display->drawBitmap(display->getWidth() - NO_WIFI_WIDTH, display->getHeight() - BATTERY_INDICATOR_HEIGHT, epd_bitmap_no_wifi, NO_WIFI_WIDTH, NO_WIFI_HEIGHT);
+  }
+  display->writeText(measurers[index]->getOutput()); // write the full output on the OLED
 }
-int DisplayController::getIterator() {
-  return iterator;
+
+int DisplayController::getCurrentIndex()
+{
+  return index;
 }
