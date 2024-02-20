@@ -47,7 +47,7 @@ void DisplayController::displayData()
   if (WiFi.status() != WL_CONNECTED)
   {
     // Display WiFi icon below battery icon
-    display->drawBitmap(display->getWidth() - NO_WIFI_WIDTH, display->getHeight() - BATTERY_INDICATOR_HEIGHT, epd_bitmap_no_wifi, NO_WIFI_WIDTH, NO_WIFI_HEIGHT);
+    display->drawBitmap(display->getWidth() - NO_WIFI_WIDTH, BATTERY_INDICATOR_HEIGHT + 5, epd_bitmap_no_wifi, NO_WIFI_WIDTH, NO_WIFI_HEIGHT);
   }
   display->writeText(measurers[index]->getOutput()); // write the full output on the OLED
 }
