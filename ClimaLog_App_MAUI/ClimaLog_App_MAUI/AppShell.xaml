@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="ClimaLog_App_MAUI.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:ClimaLog_App_MAUI.View"
+    Shell.FlyoutBehavior="Flyout">
+    <FlyoutItem Title="Data page" Icon="">
+        <ShellContent
+        Title="Last Data"
+        ContentTemplate="{DataTemplate local:DataPage}"
+        Route="DataPage"/>
+    </FlyoutItem>
+    <FlyoutItem Title="Module setup" Icon="">
+        <ShellContent
+        Title="Module setup"
+        ContentTemplate="{DataTemplate local:Settings}"
+        Route="Settings"/>
+    </FlyoutItem>
+</Shell>

@@ -3,15 +3,18 @@
 #include "Measurer.h"
 #include <DHT.h>
 
-class InsideMeasurer : public Measurer
-{
+class InsideMeasurer : public Measurer {
 public:
-  InsideMeasurer(const char *name, DHT *dhtSensor);
-  ~InsideMeasurer();
-  void readValues() override;
+    InsideMeasurer(const char* name, DHT* dhtSensor);
+    ~InsideMeasurer();
+    void readValues() override;
 
 private:
-  DHT *dhtSensor;
+    bool validateTemperature(float& temperature);
+    bool validateHumidity(int& humidity);
+    DHT* dhtSensor;
+    const int MEASURES_COUNT=5;
+    const int MAX_RETRY_COUNT=3;
 };
 
 #endif

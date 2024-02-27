@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "../../insideModule_src_pio"
+		},
+		{
+			"path": "../../outsideModule_src_pio"
+		},
+		{
+			"name": "outsideModule2_PLUGGEDIN_src",
+			"path": ".."
+		}
+	],
+	"settings": {}
+}
