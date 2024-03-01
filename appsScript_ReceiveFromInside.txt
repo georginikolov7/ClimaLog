@@ -3,9 +3,9 @@ function resetBook(){
 }
 
 function createNewSheet(book, currentDate,monthAsString){
-  Logger.log("Creating new sheet...");
+  Logger.log('Creating new sheet...');
 
-  var newSheet = book.insertSheet(monthAsString);
+  let newSheet = book.insertSheet(monthAsString);
 
   //get the previous sheet to copy formats:
   let previousMonthDate=new Date;
@@ -13,87 +13,96 @@ function createNewSheet(book, currentDate,monthAsString){
   let previousMonth=previousMonthDate.toLocaleString("en-US", { month: 'long' });
   let oldSheet=book.getSheetByName(previousMonth);
   if(!oldSheet){
-    Logger.log("Could not find previous month!");
+    Logger.log('Could not find previous month!');
   }
   else{
-    Logger.log("Formatting new sheet");
+    Logger.log('Formatting new sheet');
     // Get the range of the first row (headers) in the source sheet
     let headerRange = oldSheet.getRange(1, 1, 2, oldSheet.getLastColumn());
     
     // Get the values and data types from the header range
     let headerValues = headerRange.getValues();
-    Logger.log("Header: "+ headerValues);
-    let dataRange=oldSheet.getRange("A1:Z200");
+    Logger.log('Header: '+ headerValues);
+    let dataRange=oldSheet.getRange('A1:Z200');
     let formats = dataRange.getNumberFormats();
     let widths=dataRange.get
     // Set the values and data types to the new sheet's header
    newSheet.getRange(1, 1, 2, headerValues[0].length).setValues(headerValues);
    //set the number formats:
-   newSheet.getRange("A1:Z200").setNumberFormats(formats);
+   newSheet.getRange('A1:Z200').setNumberFormats(formats);
   }
   //set the new sheet as active:
   newSheet.activate();
   openSheet=newSheet;
-  Logger.log("Created new sheet for: " + monthAsString);
+  Logger.log('Created new sheet for: ' + monthAsString);
   return newSheet;
 }
 
 function doGet(e) { 
 Logger.log( JSON.stringify(e) );
-var result = 'Ok';
+let result = 'Ok';
 if (e.parameter == 'undefined') {
 result = 'No Parameters';
 }
 else {
-var currentDate = new Date();
+let currentDate = new Date();
 let monthAsString = currentDate.toLocaleString("en-US", { month: 'long' });
 Logger.log("Current month: "+ monthAsString);
 let book_id = '1vkVtWXBeIjBXM59YJNachYMtTnYDph5g_5YpIcnC5xU'; // Spreadsheet ID
-var book=SpreadsheetApp.openById(book_id);
-var openSheet = book.getSheetByName(monthAsString);
+let book=SpreadsheetApp.openById(book_id);
+let openSheet = book.getSheetByName(monthAsString);
 if(!openSheet){
 
   //create a new sheet for the new month
   openSheet=createNewSheet(book,currentDate,monthAsString);
 }
 let newRow = openSheet.getLastRow() + 1;
-var rowData = [];
+let rowData = [];
 rowData[0] = currentDate;
-var parameter=e.parameter;  //get the array of params: temperatures, humidities, snowDepths
+let parameter=e.parameter;  //get the array of params: temperatures, humidities, snowDepths
 
-var index=0;  //table row array indexer
-for(var param in parameter){
+let index=0;  //table row array indexer
+for(let param in parameter){
   let index=0;
   Logger.log('In for loop. Logging '+ param +" -> " +parameter[param]);
-  if(param=="insideTemperature"){
+  if(param=='insideTemperature'){
     rowData[1]=parameter[param];
   }
-  else if(param=="insideHumidity"){
+  else if(param=='insideHumidity'){
     rowData[2]=parameter[param];
   }
-  else if(param.includes("outsideTemperature")){
-    index=param.split(",")[0];
+  else if(param.includes('outsideTemperature')){
+    index=param.split(',')[0];
     rowData[3+(index-1)*4]=parameter[param];  //first temperature is at 3th column
   }
-  else if(param.includes("outsideHumidity")){
+  else if(param.includes('outsideHumidity')){
     index=param.split(",")[0];
     rowData[4+(index-1)*4]=parameter[param];  //first temperature is at 4th column
   }
-else if(param.includes("snowDepth")){
-index=param.split(",")[0];
+else if(param.includes('snowDepth')){
+index=param.split(',')[0];
     rowData[5+(index-1)*4]=parameter[param];  //first temperature is at 4th column
 }
-else if(param.includes("batLevel")){
-index=param.split(",")[0];
+else if(param.includes('batLevel')){
+index=param.split(',')[0];
     rowData[6+(index-1)*4]=parameter[param];  //first temperature is at 4th column
 }
 else{
-  Logger.log("Invalid parameter: "+param+"!");
+  Logger.log('Invalid parameter: '+param+'!');
 }
 }
+
+//Set value to empty cells: (so that json parser in Xamarin doesn't break)
+
 Logger.log(JSON.stringify(rowData));
+for(let val in rowData){
+  if(val==undefined){
+    val='noVal';
+  }
+}
 var newRange = openSheet.getRange(newRow, 1, 1, rowData.length);
 newRange.setValues([rowData]);
+
 }
 return ContentService.createTextOutput(result);
 }
