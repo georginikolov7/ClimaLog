@@ -34,9 +34,6 @@
 #include "Services/HTTPSender.h"
 #include "Services/ValueSelector.h"
 
-// Bluetooth:
-#include "Services/BLEService.h"
-#include "Services/BtController.h"
 // Repos:
 #include "Repos/NetworkRepo.h"
 #include "Repos/OutsideMeasurersRepo.h"
@@ -80,11 +77,10 @@ uint8_t receivePipe; // used to store the pipe num where data was received
 RF24 radio(CE_PIN, CS_PIN); // radio object
 
 // Outside modules:
-
 const int OUTSIDE_MODULES_COUNT = 2; // set the count of the active modules
 // addresses for outside modules (Index+OUTM):
-uint8_t readAddresses[OUTSIDE_MODULES_COUNT][6] = {
-    "1OUTM", "2OUTM"
+uint8_t readAddresses[6][6] = {
+    "1OUTM", "2OUTM", "3OUTM", "4OUTM", "5OUTM", "6OUTM"
 };
 #define DEFAULT_MOUNTING_HEIGHT 80 // modules work best when mounted at 80 cm
 // Outside measurer instances:
@@ -99,7 +95,8 @@ const int WIFI_CONNECT_TIME_LIMIT = 40000; // 40 seconds  for connecting
 NetworkRepo networks(MAX_NETWORKS_COUNT);
 WifiNetwork phone("AndroidAPe456", "12345678");
 WifiNetwork dumy1("pesho's wifi", "*******");
-WifiNetwork dumy2("home", "***");
+WifiNetwork dumy2("Nokolovi UBMT", "bvnSP0620");
+
 // Obtaining the time:
 const char* ntpServer = "pool.ntp.org";
 struct tm currentTime;
@@ -107,14 +104,9 @@ struct tm lastTime; // used to store the last time when https request was sent
 const long gmtOffset_sec = 7200; // UTC +2 hours id +7200 seconds
 const int daylightOffset_sec = 0; // not summer time
 
-// // Bluetooth:
-// #define BT_DEVICE_NAME "ClimaLog_Bt"
-// BleService* ble = new BleService();
-// BtController* btController = new BtController(networks, ble);
-
 // HTTP:
 const char* hostID = "AKfycby3nkAQKVJ2M6Oo7USsUUVcAEmSNu6NRPp86zZgQFSBUEhfyxwjZn7Erk3E3MQoIdAYiQ"; // the id of the google apps script
-HttpSender httpSender(hostID);
+// HttpSender httpSender(hostID);
 
 // Display controller object, used for toggling display mode:
 DisplayController displayController(&display);
@@ -163,9 +155,6 @@ void setup()
     networks.add(phone);
     networks.add(dumy1);
     networks.add(dumy2);
-
-    // Initialize bluetooth:
-    //ble->init(BT_DEVICE_NAME);
 
     // Initialize I2C comm and display object:
     Wire.begin(I2C_DATA, I2C_CLK, 100000);
@@ -245,26 +234,6 @@ void setup()
 
 void loop()
 {
-//     if (ble->isConnected()) {
-//         display.resetDisplay();
-//         display.writeText("Bluetooth device connected!");
-// #ifdef USESERIAL
-//         Serial.println("Bluetooth device connected");
-// #endif
-//         delay(100);
-//         while (ble->isConnected()) {
-//             if (ble->isAvailable()) {
-//                 // Message was received => parse it:
-//                 if (!btController->readCommand()) {
-//                     break;
-//                 }
-//             }
-//         }
-//         display.resetDisplay();
-//         display.writeText("Bluetooth disconnected!");
-//         delay(3000);
-//         display.resetDisplay();
-//     }
     // Check if data is received:
     if (radio.available(&receivePipe)) {
         // receivePipe corresponds to index of outsideMeasurer + 1
@@ -312,21 +281,19 @@ void loop()
                 lastTime.tm_hour = currentTime.tm_hour;
                 lastTime.tm_min = currentTime.tm_min;
             }
+
             // Send https request:
             if (!HTTPS_sent) {
+                HttpSender* httpSender = new HttpSender(hostID);
 #ifdef USESERIAL
                 Serial.printf("Sending http request. Current time: %i:%i\n\n",
                     currentTime.tm_hour, currentTime.tm_min);
 #endif
-                // Clear memory from bluetooth object:
-               // delete ble;
-                if (httpSender.sendRequest(insideMeasurer, outsideMeasurers)) {
+                if (httpSender->sendRequest(insideMeasurer, outsideMeasurers)) {
                     HTTPS_sent = true;
-
-                    // Recreate the ble object:
-                    //ble = new BleService();
-                    //ble->init(BT_DEVICE_NAME);
                 }
+                // Clear memory from httpSender
+                delete httpSender;
             }
         } else {
 #ifdef USESERIAL
@@ -376,6 +343,7 @@ void heightSetup()
         outsideMeasurers[moduleIndex].getMountingHeight()); // for debugging only
 #endif
 }
+
 bool selectWifiNetwork()
 {
     WiFi.mode(WIFI_STA); // set esp32 as station
