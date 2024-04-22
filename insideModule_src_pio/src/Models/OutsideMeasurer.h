@@ -35,11 +35,7 @@ public:
     int getMinHeight() { return MIN_HEIGHT; }
     int getMaxHeight() { return MAX_HEIGHT; }
     const char* getBatteryLevel();
-    bool batLevelIsLow()
-    {
-        return batteryLevel <= LOW_BATTERY_PERCENTAGE; // returns true if battery
-                                                       // is at capacity below 30%
-    }
+    bool batLevelIsLow();
     void readValues() override;
 
     const char* getSnowDepth();

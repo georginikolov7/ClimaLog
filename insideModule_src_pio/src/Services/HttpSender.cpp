@@ -9,12 +9,6 @@ HttpSender::~HttpSender()
     delete[] httpURL;
 }
 
-// void HttpSender::init(InsideMeasurer* insideMeasurer, OutsideMeasurersRepo* outsideMeasurers)
-// {
-//     this->insideMeasurer = insideMeasurer;
-//     this->outsideMeasurersCount = outsideMeasurers->getCount();
-//     this->outsideMeasurers = outsideMeasurers;
-// }
 void HttpSender::buildHttpURL(InsideMeasurer& insideMeasurer, OutsideMeasurersRepo& outsideMeasurers)
 {
     const int URL_LENGTH = 500;
@@ -40,13 +34,13 @@ void HttpSender::buildHttpURL(InsideMeasurer& insideMeasurer, OutsideMeasurersRe
 
         // // Append outsideData to http:
         sprintf(outsideData, "&%i,outsideTemperature=%s", i + 1, currentMeasurer->getTemperature());
-        strncat(httpURL, outsideData, OUTSIDE_DATA_LEN - strlen(outsideData) - 1);
+        strncat(httpURL, outsideData, URL_LENGTH - strlen(httpURL) - 1);
 
-        snprintf(outsideData, sizeof(outsideData) - 1, "&%i,outsideHumidity=%s", i + 1, currentMeasurer->getTemperature());
-        strncat(httpURL, outsideData, OUTSIDE_DATA_LEN - strlen(outsideData) - 1);
+        snprintf(outsideData, sizeof(outsideData) - 1, "&%i,outsideHumidity=%s", i + 1, currentMeasurer->getHumidity());
+        strncat(httpURL, outsideData, URL_LENGTH - strlen(httpURL) - 1);
 
         snprintf(outsideData, sizeof(outsideData) - 1, "&%i,snowDepth=%s", i + 1, currentMeasurer->getSnowDepth());
-        strncat(httpURL, outsideData, OUTSIDE_DATA_LEN - strlen(outsideData) - 1);
+        strncat(httpURL, outsideData, URL_LENGTH - strlen(httpURL) - 1);
 
         snprintf(outsideData, sizeof(outsideData) - 1, "&%i,batLevel=%s", i + 1, currentMeasurer->getBatteryLevel());
         strncat(httpURL, outsideData, URL_LENGTH - strlen(httpURL) - 1);
@@ -61,7 +55,7 @@ bool HttpSender::sendRequest(InsideMeasurer& insideMeasurer, OutsideMeasurersRep
 #ifdef USESERIAL
     Serial.println(F("\nStarting connection to server..."));
 #endif
-    buildHttpURL(insideMeasurer,outsideMeasurers);
+    buildHttpURL(insideMeasurer, outsideMeasurers);
     http.begin(httpURL);
     int httpCode = http.GET();
     if (httpCode > 0) {

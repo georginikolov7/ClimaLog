@@ -26,6 +26,14 @@ bool OutsideMeasurer::operator==(OutsideMeasurer& other)
     // If names are equal than the objects are equal
     return other.getName() == this->name;
 }
+bool OutsideMeasurer::batLevelIsLow()
+{
+    if (isPluggedIn) {
+        return false;
+    }
+
+    return batteryLevel <= LOW_BATTERY_PERCENTAGE; // returns true if battery is at capacity below 30%
+}
 void OutsideMeasurer::readValues()
 {
     ReceiveBuffer buffer;
@@ -50,7 +58,7 @@ void OutsideMeasurer::readValues()
     } else {
         // Save snowDepth as string:
         int snowDepth = mountingHeight - buffer.measuredDistance;
-
+        Serial.println(buffer.measuredDistance);
         // round snowDepth to closest multiple of 5:
         snowDepth = ((snowDepth + 5 / 2) / 5) * 5;
         itoa(snowDepth, this->snowDepth, 10);
@@ -78,7 +86,7 @@ const char* OutsideMeasurer::getOutput()
 const char* OutsideMeasurer::getBatteryLevel()
 {
     if (isPluggedIn) {
-        strncpy(batteryStatus, "Plugged in", sizeof(batteryStatus) - 1);
+        strncpy(batteryStatus, "100", sizeof(batteryStatus) - 1);
     } else {
         itoa(batteryLevel, batteryStatus, 10);
     }

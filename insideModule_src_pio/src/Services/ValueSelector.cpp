@@ -1,7 +1,7 @@
 #include "ValueSelector.h"
 #include <cstring>
 
-ValueSelector::ValueSelector(Adafruit_SSD1306* display, Button* setButton, const char* keyword, const char* measureUnit)
+ValueSelector::ValueSelector(IDisplay* display, Button* setButton, const char* keyword, const char* measureUnit)
 {
     this->display = display;
     this->setButton = setButton;
@@ -39,17 +39,13 @@ int ValueSelector::selectIntValue(int minValue, int maxValue, int startValue, in
 
         if (millis() - lastBlinkTime > BLINK_INTERVAL) {
             if (isOn) {
-                display->clearDisplay();
-                display->setCursor(0, 0);
-                display->println(text_noValue);
-                display->display();
+                display->resetDisplay();
+                display->writeText(text_noValue);
                 isOn = false;
                 delay(10);
             } else {
-                display->clearDisplay();
-                display->setCursor(0, 0);
-                display->println(text_value);
-                display->display();
+                display->resetDisplay();
+                display->writeText(text_value);
                 isOn = true;
                 delay(10);
             }
@@ -58,10 +54,9 @@ int ValueSelector::selectIntValue(int minValue, int maxValue, int startValue, in
     }
     char text[64] = "\0";
     sprintf(text, "Selected \n%s\n   %i %s", keyword, currentValue, measureUnit);
-    display->clearDisplay();
-    display->setCursor(0, 0);
-    display->println(text);
-    display->display();
+
+    display->resetDisplay();
+    display->writeText(text);
     delay(2500);
 
     return currentValue;
@@ -88,18 +83,13 @@ int ValueSelector::selectStringValueFromArray(char array[][200], int arraySize, 
 
         if (millis() - lastBlinkTime > BLINK_INTERVAL) {
             if (isOn) {
-                display->clearDisplay();
-                display->setCursor(0, 0);
-                display->println(text_noValue);
-                display->display();
+                display->resetDisplay();
+                display->writeText(text_noValue);
                 isOn = false;
                 delay(10);
-            } else {
-                display->clearDisplay();
-                display->setCursor(0, 0);
-                display->println(text_value);
-
-                display->display();
+            } else {          
+                display->resetDisplay();
+                display->writeText(text_value);
                 isOn = true;
                 delay(10);
             }
@@ -108,10 +98,8 @@ int ValueSelector::selectStringValueFromArray(char array[][200], int arraySize, 
     }
     char text[64] = "\0";
     sprintf(text, "Selected \n%s\n  %s %s", keyword, array[currentValue], measureUnit);
-    display->clearDisplay();
-    display->setCursor(0, 0);
-    display->println(text);
-    display->display();
+    display->resetDisplay();
+    display->writeText(text);
     delay(2500);
 
     return currentValue;

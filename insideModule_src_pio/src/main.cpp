@@ -18,41 +18,34 @@
 #include <nRF24L01.h>
 #include <printf.h> //for printing rf24 details (debugging)
 
-// Display:
-#include "Adafruit_GFX.h"
-#include "Adafruit_SSD1306.h"
-#include "Icons.h"
+// Models:
 #include "Models/Button.h"
 #include "Models/InsideMeasurer.h"
 #include "Models/OutsideMeasurer.h"
-#include "Services/DisplayController.h"
-
-#include "Services/ValueSelector.h"
-// For sending the data to the web API:
 #include "Models/WifiNetwork.h"
-#include "Repos/NetworkRepo.h"
+
+// Display:
+#include "Adafruit_GFX.h"
+#include "Adafruit_SSD1306.h"
+#include "Models/OLEDDisplay.h"
+#include "Services/DisplayController.h"
+// Services:
+#include "Icons.h"
 #include "Services/HTTPSender.h"
+#include "Services/ValueSelector.h"
+
+// Bluetooth:
+#include "Services/BLEService.h"
+#include "Services/BtController.h"
+// Repos:
+#include "Repos/NetworkRepo.h"
+#include "Repos/OutsideMeasurersRepo.h"
+// For sending the data to the web API:
 #include <WiFi.h>
 #include <time.h>
 //-------------------------------------------------------------------------------------------------------------------------------
 
 #define USESERIAL // uncomment to use serial monitor for debugging
-
-// WiFi:
-const int WIFI_CONNECT_TIME_LIMIT = 40000; // 40 seconds  for connecting
-
-#define MAX_NETWORKS_COUNT 10
-NetworkRepo networks(MAX_NETWORKS_COUNT);
-WifiNetwork phone("AndroidAPe456", "12345678");
-WifiNetwork kartala("kartala", "*******");
-WifiNetwork biscuit("VIVACOM 4G WiFi_2C8D", "***");
-// Obtaining the time:
-const char* ntpServer = "pool.ntp.org";
-struct tm currentTime;
-struct tm lastTime; // used to store the last time when https request was sent
-
-const long gmtOffset_sec = 7200; // UTC +2 hours id +7200 seconds
-const int daylightOffset_sec = 0; // not summer time
 
 // DHT22 Sensor:
 #define INSIDE_DHT_TYPE DHT22
@@ -68,15 +61,13 @@ InsideMeasurer insideMeasurer("In", &insideDHT);
 #define WIDTH 128 // width of display in px
 #define HEIGHT 64 // height of display in px
 #define DISPLAY_ADDRESS 0x3c // I2C address for OLED display
-Adafruit_SSD1306 display(WIDTH, HEIGHT, &Wire); // OLED display object
+OLEDDisplay display(WIDTH, HEIGHT, &Wire); // OLED display object
 
 // Button objects:
 #define SET_BUTTON_PIN 33
 #define DISPLAY_BUTTON_PIN 32
 Button setButton(SET_BUTTON_PIN);
 Button displayButton(DISPLAY_BUTTON_PIN);
-
-// Outside modules:
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // NOTE: AS OF THIS MOMENT, MODULES AND WIFI NETWORKS NEED TO BE ADDED MANUALLY HERE IN THE CODE. DYNAMIC SETUP VIA BLUETOOTH IS UNDERWAY!
@@ -85,27 +76,44 @@ Button displayButton(DISPLAY_BUTTON_PIN);
 // Radio:
 #define CE_PIN 17 // SPI chip enable
 #define CS_PIN 5 // SPI chip select pin
+uint8_t receivePipe; // used to store the pipe num where data was received
+RF24 radio(CE_PIN, CS_PIN); // radio object
+
+// Outside modules:
 
 const int OUTSIDE_MODULES_COUNT = 2; // set the count of the active modules
 // addresses for outside modules (Index+OUTM):
 uint8_t readAddresses[OUTSIDE_MODULES_COUNT][6] = {
     "1OUTM", "2OUTM"
 };
-
-uint8_t receivePipe; // used to store the pipe num where data was received
-RF24 radio(CE_PIN, CS_PIN); // radio object
-
 #define DEFAULT_MOUNTING_HEIGHT 80 // modules work best when mounted at 80 cm
-
 // Outside measurer instances:
 OutsideMeasurer out1("Out 1", 0, &radio);
-OutsideMeasurer out2("Out 2", 1, &radio);
-
+OutsideMeasurer out2("Out 2", 1, &radio, true);
 // OutsideMeasurer repo:
 OutsideMeasurersRepo outsideMeasurers(6);
 
-const char* hostID = "AKfycby3nkAQKVJ2M6Oo7USsUUVcAEmSNu6NRPp86zZgQFSBUEhfyxwjZn7Erk3E3MQoIdAYiQ"; // the id of the google apps script
+// WiFi:
+const int WIFI_CONNECT_TIME_LIMIT = 40000; // 40 seconds  for connecting
+#define MAX_NETWORKS_COUNT 10
+NetworkRepo networks(MAX_NETWORKS_COUNT);
+WifiNetwork phone("AndroidAPe456", "12345678");
+WifiNetwork dumy1("pesho's wifi", "*******");
+WifiNetwork dumy2("home", "***");
+// Obtaining the time:
+const char* ntpServer = "pool.ntp.org";
+struct tm currentTime;
+struct tm lastTime; // used to store the last time when https request was sent
+const long gmtOffset_sec = 7200; // UTC +2 hours id +7200 seconds
+const int daylightOffset_sec = 0; // not summer time
 
+// // Bluetooth:
+// #define BT_DEVICE_NAME "ClimaLog_Bt"
+// BleService* ble = new BleService();
+// BtController* btController = new BtController(networks, ble);
+
+// HTTP:
+const char* hostID = "AKfycby3nkAQKVJ2M6Oo7USsUUVcAEmSNu6NRPp86zZgQFSBUEhfyxwjZn7Erk3E3MQoIdAYiQ"; // the id of the google apps script
 HttpSender httpSender(hostID);
 
 // Display controller object, used for toggling display mode:
@@ -113,7 +121,7 @@ DisplayController displayController(&display);
 
 // Control variables and constants:
 bool HTTPS_sent = true;
-const int HTTP_SEND_INTERVAL = 1; // send request every 30 minutes
+const int HTTP_SEND_INTERVAL = 1; // send request every minute
 unsigned long lastInsideReadTime = 0;
 #define INSIDE_READ_INTERVAL 120000 // read temp/hum inside once every 2 mins
 
@@ -153,18 +161,17 @@ void setup()
     outsideMeasurers.add(out2);
     // Add networks to repo:
     networks.add(phone);
-    networks.add(kartala);
-    networks.add(biscuit);
+    networks.add(dumy1);
+    networks.add(dumy2);
+
+    // Initialize bluetooth:
+    //ble->init(BT_DEVICE_NAME);
 
     // Initialize I2C comm and display object:
     Wire.begin(I2C_DATA, I2C_CLK, 100000);
     display.begin(SSD1306_SWITCHCAPVCC, DISPLAY_ADDRESS);
-    display.setTextSize(2);
-    display.setTextColor(WHITE);
-    display.setCursor(0, 0);
-    display.clearDisplay();
-    display.println("Booting...");
-    display.display();
+    display.defaultSetup();
+    display.writeText("Booting...");
 
     // Init the display controller:
     displayController.begin(&insideMeasurer, &outsideMeasurers, OUTSIDE_MODULES_COUNT);
@@ -238,7 +245,26 @@ void setup()
 
 void loop()
 {
-
+//     if (ble->isConnected()) {
+//         display.resetDisplay();
+//         display.writeText("Bluetooth device connected!");
+// #ifdef USESERIAL
+//         Serial.println("Bluetooth device connected");
+// #endif
+//         delay(100);
+//         while (ble->isConnected()) {
+//             if (ble->isAvailable()) {
+//                 // Message was received => parse it:
+//                 if (!btController->readCommand()) {
+//                     break;
+//                 }
+//             }
+//         }
+//         display.resetDisplay();
+//         display.writeText("Bluetooth disconnected!");
+//         delay(3000);
+//         display.resetDisplay();
+//     }
     // Check if data is received:
     if (radio.available(&receivePipe)) {
         // receivePipe corresponds to index of outsideMeasurer + 1
@@ -259,6 +285,7 @@ void loop()
         selectWifiNetwork();
         displayController.displayData();
     }
+
     // change displayed data if button is pressed:
     if (displayButton.isShortPressed()) {
         displayController.changeDisplayMode();
@@ -285,15 +312,20 @@ void loop()
                 lastTime.tm_hour = currentTime.tm_hour;
                 lastTime.tm_min = currentTime.tm_min;
             }
-
             // Send https request:
             if (!HTTPS_sent) {
 #ifdef USESERIAL
                 Serial.printf("Sending http request. Current time: %i:%i\n\n",
                     currentTime.tm_hour, currentTime.tm_min);
 #endif
+                // Clear memory from bluetooth object:
+               // delete ble;
                 if (httpSender.sendRequest(insideMeasurer, outsideMeasurers)) {
                     HTTPS_sent = true;
+
+                    // Recreate the ble object:
+                    //ble = new BleService();
+                    //ble->init(BT_DEVICE_NAME);
                 }
             }
         } else {
@@ -386,4 +418,4 @@ bool selectWifiNetwork()
 }
 // Brooks was here...
 
-// And so was Red.
+// So was Red.

@@ -2,8 +2,7 @@
 #define DisplayController_h
 
 // include the display library:
-#include "Adafruit_GFX.h"
-#include "Adafruit_SSD1306.h"
+#include "Models/IDisplay.h"
 
 #include "Models/InsideMeasurer.h"
 #include "Models/Measurer.h"
@@ -12,7 +11,7 @@
 
 class DisplayController {
 public:
-    DisplayController(Adafruit_SSD1306* display);
+    DisplayController(IDisplay* display);
     void begin(InsideMeasurer* insideMeasurer, OutsideMeasurersRepo* outsideMeasurers, int outsideMeasurersCount);
     ~DisplayController();
     void changeDisplayMode();
@@ -23,7 +22,7 @@ private:
     bool ready = false;
     Measurer** measurers;
     OutsideMeasurersRepo* outsideMeasurers;
-    Adafruit_SSD1306* display;
+    IDisplay* display;
     int index = 0;
     int measurersCount = 0;
 

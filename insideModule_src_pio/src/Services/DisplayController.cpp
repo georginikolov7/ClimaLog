@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-DisplayController::DisplayController(Adafruit_SSD1306* display)
+DisplayController::DisplayController(IDisplay* display)
 
 {
     this->display = display;
@@ -49,22 +49,21 @@ void DisplayController::displayData()
     if (!ready) {
         throw;
     }
-    display->clearDisplay();
-     display->setCursor(0, 0);
+
     if (index >= 1 && (*outsideMeasurers)[index - 1].batLevelIsLow()) {
         // size of outsideMeasurers array is measurers size - 1 => index is iterator - 1
 
         // Draw the bitmap on the display:
         int xPosition = DISPLAY_WIDTH - BATTERY_INDICATOR_WIDTH;
-        display->drawBitmap(xPosition, 0, batteryIndicator, BATTERY_INDICATOR_WIDTH, BATTERY_INDICATOR_HEIGHT,WHITE);
+        display->drawBitmap(xPosition, 0, batteryIndicator, BATTERY_INDICATOR_WIDTH, BATTERY_INDICATOR_HEIGHT);
     }
 
     if (WiFi.status() != WL_CONNECTED) {
-        // Display WiFi icon below battery icon
-        display->drawBitmap(DISPLAY_WIDTH - NO_WIFI_WIDTH, BATTERY_INDICATOR_HEIGHT + 5, epd_bitmap_no_wifi, NO_WIFI_WIDTH, NO_WIFI_HEIGHT,WHITE);
+        // Display WiFi icon below battery icon:
+        display->drawBitmap(DISPLAY_WIDTH - NO_WIFI_WIDTH, BATTERY_INDICATOR_HEIGHT + 5, epd_bitmap_no_wifi, NO_WIFI_WIDTH, NO_WIFI_HEIGHT);
     }
-    display->println(measurers[index]->getOutput()); // write the full output on the OLED
-    display->display();
+    display->resetDisplay();
+    display->writeText(measurers[index]->getOutput());
 }
 
 int DisplayController::getCurrentIndex()
