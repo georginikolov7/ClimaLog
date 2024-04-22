@@ -14,7 +14,7 @@
     <FlyoutItem Title="Module setup" Icon="">
         <ShellContent
         Title="Module setup"
-        ContentTemplate="{DataTemplate local:Settings}"
-        Route="Settings"/>
+        ContentTemplate="{DataTemplate local:SettingsPage}"
+        Route="SettingsPage"/>
     </FlyoutItem>
 </Shell>

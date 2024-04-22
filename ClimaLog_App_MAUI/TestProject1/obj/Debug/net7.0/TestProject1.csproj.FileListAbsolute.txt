@@ -1,0 +1,6 @@
+C:\Users\Test\Documents\GitHub\ClimaLog\ClimaLog_App_MAUI\TestProject1\bin\Debug\net7.0\CoverletSourceRootsMapping
+C:\Users\Test\Documents\GitHub\ClimaLog\ClimaLog_App_MAUI\TestProject1\obj\Debug\net7.0\TestProject1.csproj.AssemblyReference.cache
+C:\Users\Test\Documents\GitHub\ClimaLog\ClimaLog_App_MAUI\TestProject1\obj\Debug\net7.0\TestProject1.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Test\Documents\GitHub\ClimaLog\ClimaLog_App_MAUI\TestProject1\obj\Debug\net7.0\TestProject1.AssemblyInfoInputs.cache
+C:\Users\Test\Documents\GitHub\ClimaLog\ClimaLog_App_MAUI\TestProject1\obj\Debug\net7.0\TestProject1.AssemblyInfo.cs
+C:\Users\Test\Documents\GitHub\ClimaLog\ClimaLog_App_MAUI\TestProject1\obj\Debug\net7.0\TestProject1.csproj.CoreCompileInputs.cache

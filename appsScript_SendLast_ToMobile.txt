@@ -1,11 +1,21 @@
 
 function parseLastDataToJSON() {
   // Open the active sheet
-  const bookId='1vkVtWXBeIjBXM59YJNachYMtTnYDph5g_5YpIcnC5xU';  // Change the sheetId according to your sheets table
-  var sheet = SpreadsheetApp.openById(bookId).getActiveSheet();
-  
-  // Get the last row with data
-  var lastRow = sheet.getLastRow();
+  //Open book:
+
+  let currentDate=new Date();
+  let bookName='ClimaLog_Data_'+currentDate.getFullYear();
+  let bookFiles=DriveApp.getFilesByName(bookName);
+  if(!bookFiles.hasNext()){
+    //The book does not exist => throw error:
+    Logger.log('Book does not exist!');
+    return;
+  }
+  let book=SpreadsheetApp.open(DriveApp.getFilesByName(bookName).next());
+  let sheets=book.getSheets();
+  let sheet=sheets[sheets.length-1];
+    // Get the last row with data
+    var lastRow = sheet.getLastRow();
   
   // Get all values in the last row
   var rowData = sheet.getRange(lastRow, 1, 1, sheet.getLastColumn()).getValues()[0];

@@ -1,39 +1,43 @@
-function resetBook(){
-  
+
+function createBook(currentDate){
+  currentDate=new Date();
+  Logger.log("Creating new book...");
+  let year=currentDate.getFullYear();
+  let name='ClimaLog_Data_'+ year;
+  let book=SpreadsheetApp.create(name);
+
+  //Set the id to the new book:
+
+   Logger.log(`Created book with id: ${book.getId()}`);
+
+  //Clear the default sheet:
+ // book.deleteActiveSheet();
+let monthAsString =currentDate.toLocaleString("en-US", { month: 'long' });
+
+//Create the new sheet:
+createNewSheet(book,monthAsString);
+  return book;
 }
 
-function createNewSheet(book, currentDate,monthAsString){
+function test(){
+
+let date=new Date();
+let book;
+let bookName='ClimaLog_Data_'+date.getFullYear();
+let bookFiles=DriveApp.getFilesByName(bookName);
+book=SpreadsheetApp.open(DriveApp.getFilesByName(bookName).next());
+let monthAsString=date.toLocaleString("en-US", { month: 'long' });
+  createNewSheet(book,monthAsString);
+}
+function createNewSheet(book,monthAsString){
   Logger.log('Creating new sheet...');
-
-  let newSheet = book.insertSheet(monthAsString);
-
-  //get the previous sheet to copy formats:
-  let previousMonthDate=new Date;
-  previousMonthDate.setMonth(currentDate.getMonth()-1);
-  let previousMonth=previousMonthDate.toLocaleString("en-US", { month: 'long' });
-  let oldSheet=book.getSheetByName(previousMonth);
-  if(!oldSheet){
-    Logger.log('Could not find previous month!');
-  }
-  else{
-    Logger.log('Formatting new sheet');
-    // Get the range of the first row (headers) in the source sheet
-    let headerRange = oldSheet.getRange(1, 1, 2, oldSheet.getLastColumn());
-    
-    // Get the values and data types from the header range
-    let headerValues = headerRange.getValues();
-    Logger.log('Header: '+ headerValues);
-    let dataRange=oldSheet.getRange('A1:Z200');
-    let formats = dataRange.getNumberFormats();
-    let widths=dataRange.get
-    // Set the values and data types to the new sheet's header
-   newSheet.getRange(1, 1, 2, headerValues[0].length).setValues(headerValues);
-   //set the number formats:
-   newSheet.getRange('A1:Z200').setNumberFormats(formats);
-  }
-  //set the new sheet as active:
-  newSheet.activate();
-  openSheet=newSheet;
+  Logger.log('Getting formatted sheet...');
+  let formatsBookID='1URJXqPr05jgT2bZK01Q_omuLTnTlYEIVISjcdUguIq8';
+  let formatsSheet=SpreadsheetApp.openById(formatsBookID).getActiveSheet();
+  let sheetName=formatsSheet.getName();
+  formatsSheet.copyTo(book);
+  let newSheet=book.getSheetByName('Copy of '+sheetName);
+  newSheet.setName(monthAsString);
   Logger.log('Created new sheet for: ' + monthAsString);
   return newSheet;
 }
@@ -46,16 +50,28 @@ result = 'No Parameters';
 }
 else {
 let currentDate = new Date();
+
+
+//Open book:
+let book;
+let bookName='ClimaLog_Data_'+currentDate.getFullYear();
+let bookFiles=DriveApp.getFilesByName(bookName);
+if(!bookFiles.hasNext()){
+  //The book doesn't exist => create it:
+  book=createBook(currentDate);
+}else{
+book=SpreadsheetApp.open(DriveApp.getFilesByName(bookName).next());
+}
+
+//open the last sheet:
 let monthAsString = currentDate.toLocaleString("en-US", { month: 'long' });
-Logger.log("Current month: "+ monthAsString);
-let book_id = '1vkVtWXBeIjBXM59YJNachYMtTnYDph5g_5YpIcnC5xU'; // Spreadsheet ID
-let book=SpreadsheetApp.openById(book_id);
 let openSheet = book.getSheetByName(monthAsString);
 if(!openSheet){
 
-  //create a new sheet for the new month
-  openSheet=createNewSheet(book,currentDate,monthAsString);
+  //create a new sheet for the new month:
+  openSheet=createNewSheet(monthAsString);
 }
+
 let newRow = openSheet.getLastRow() + 1;
 let rowData = [];
 rowData[0] = currentDate;
@@ -92,7 +108,7 @@ else{
 }
 }
 
-//Set value to empty cells: (so that json parser in Xamarin doesn't break)
+//Set values to empty cells: (so that json parser in Xamarin doesn't break)
 
 Logger.log(JSON.stringify(rowData));
 for(let val in rowData){
@@ -100,7 +116,7 @@ for(let val in rowData){
     val='noVal';
   }
 }
-var newRange = openSheet.getRange(newRow, 1, 1, rowData.length);
+let newRange = openSheet.getRange(newRow, 1, 1, rowData.length);
 newRange.setValues([rowData]);
 
 }

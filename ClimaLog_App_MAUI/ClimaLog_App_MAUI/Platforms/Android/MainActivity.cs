@@ -8,3 +8,4 @@ namespace ClimaLog_App_MAUI;
 public class MainActivity : MauiAppCompatActivity
 {
 }
+

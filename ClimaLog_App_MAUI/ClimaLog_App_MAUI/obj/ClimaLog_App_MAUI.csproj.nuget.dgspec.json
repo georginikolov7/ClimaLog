@@ -86,9 +86,17 @@
               "target": "Package",
               "version": "[13.0.3, )"
             },
+            "Plugin.BLE": {
+              "target": "Package",
+              "version": "[3.0.0, )"
+            },
             "System.ObjectModel": {
               "target": "Package",
               "version": "[4.3.0, )"
+            },
+            "Xamarin.Essentials": {
+              "target": "Package",
+              "version": "[1.8.1, )"
             }
           },
           "imports": [
@@ -165,9 +173,17 @@
               "target": "Package",
               "version": "[13.0.3, )"
             },
+            "Plugin.BLE": {
+              "target": "Package",
+              "version": "[3.0.0, )"
+            },
             "System.ObjectModel": {
               "target": "Package",
               "version": "[4.3.0, )"
+            },
+            "Xamarin.Essentials": {
+              "target": "Package",
+              "version": "[1.8.1, )"
             }
           },
           "imports": [
@@ -279,6 +295,10 @@
               "target": "Package",
               "version": "[13.0.3, )"
             },
+            "Plugin.BLE": {
+              "target": "Package",
+              "version": "[3.0.0, )"
+            },
             "System.ObjectModel": {
               "target": "Package",
               "version": "[4.3.0, )"
@@ -287,6 +307,10 @@
               "target": "Package",
               "version": "[6.0.1, )",
               "autoReferenced": true
+            },
+            "Xamarin.Essentials": {
+              "target": "Package",
+              "version": "[1.8.1, )"
             }
           },
           "imports": [
@@ -374,6 +398,10 @@
               "target": "Package",
               "version": "[13.0.3, )"
             },
+            "Plugin.BLE": {
+              "target": "Package",
+              "version": "[3.0.0, )"
+            },
             "System.ObjectModel": {
               "target": "Package",
               "version": "[4.3.0, )"
@@ -382,6 +410,10 @@
               "target": "Package",
               "version": "[6.0.1, )",
               "autoReferenced": true
+            },
+            "Xamarin.Essentials": {
+              "target": "Package",
+              "version": "[1.8.1, )"
             }
           },
           "imports": [
@@ -476,9 +508,17 @@
               "target": "Package",
               "version": "[13.0.3, )"
             },
+            "Plugin.BLE": {
+              "target": "Package",
+              "version": "[3.0.0, )"
+            },
             "System.ObjectModel": {
               "target": "Package",
               "version": "[4.3.0, )"
+            },
+            "Xamarin.Essentials": {
+              "target": "Package",
+              "version": "[1.8.1, )"
             }
           },
           "imports": [

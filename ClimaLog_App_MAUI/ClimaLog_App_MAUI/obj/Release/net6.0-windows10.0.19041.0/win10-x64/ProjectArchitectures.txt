@@ -1,1 +1,0 @@
-C:\Users\Test\Documents\GitHub\ClimaLog\ClimaLog_App_MAUI\ClimaLog_App_MAUI\ClimaLog_App_MAUI.csproj;x64
