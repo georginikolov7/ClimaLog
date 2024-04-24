@@ -3,28 +3,35 @@
 #include <stdio.h>
 #include <string.h>
 
-OutsideMeasurer::OutsideMeasurer(const char* name, int indexOfModule,
+OutsideMeasurer::OutsideMeasurer(const char* name, int index,
     RF24* radio, bool isPluggedIn)
     : Measurer(name)
 {
     this->radio = radio;
     this->isPluggedIn = isPluggedIn;
+    powerSource = new char[11];
     if (isPluggedIn) {
         batteryLevel = 100;
+        strncpy(powerSource, "Plugged in", strlen(powerSource));
+    } else {
+        strncpy(powerSource, "Battery", strlen(powerSource));
     }
 
-    // Validation for index:
-    if (indexOfModule < 0 || indexOfModule > 5) {
-        throw;
-    }
-    this->indexOfModule = indexOfModule;
+    this->index = index;
 }
-OutsideMeasurer::~OutsideMeasurer() { }
+OutsideMeasurer::~OutsideMeasurer()
+{
+    delete[] powerSource;
+}
 
 bool OutsideMeasurer::operator==(OutsideMeasurer& other)
 {
     // If names are equal than the objects are equal
     return other.getName() == this->name;
+}
+const char* OutsideMeasurer::getPowerSource()
+{
+    return powerSource;
 }
 bool OutsideMeasurer::batLevelIsLow()
 {
@@ -100,6 +107,6 @@ void OutsideMeasurer::setMountingHeight(int newHeight)
 {
     mountingHeight = newHeight;
     // Save value to flash:
-    EEPROM.write(indexOfModule, mountingHeight);
+    EEPROM.write(index, mountingHeight);
     EEPROM.commit();
 }

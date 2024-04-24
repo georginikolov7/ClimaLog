@@ -31,6 +31,7 @@ StatusCode OutsideMeasurersRepo::add(OutsideMeasurer& measurer)
     array[count] = measurer;
     // Increment the count:
     count++;
+    Serial.println("added measurer to repo");
     return StatusCode::NoError;
 }
 StatusCode OutsideMeasurersRepo::remove(OutsideMeasurer& refMeasurer)

@@ -11,7 +11,7 @@ public:
     virtual const char* getOutput(); // returns formatted string to display on OLED
     const char* getTemperature();
     const char* getHumidity();
-    const char* getName()
+    const char* getName() const
     {
         return name;
     }

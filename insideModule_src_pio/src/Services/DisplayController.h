@@ -12,7 +12,7 @@
 class DisplayController {
 public:
     DisplayController(IDisplay* display);
-    void begin(InsideMeasurer* insideMeasurer, OutsideMeasurersRepo* outsideMeasurers, int outsideMeasurersCount);
+    void begin(InsideMeasurer* insideMeasurer, OutsideMeasurersRepo* outsideMeasurers);
     ~DisplayController();
     void changeDisplayMode();
     void displayData();
@@ -20,11 +20,10 @@ public:
 
 private:
     bool ready = false;
-    Measurer** measurers;
     OutsideMeasurersRepo* outsideMeasurers;
+    InsideMeasurer* insideMeasurer;
     IDisplay* display;
     int index = 0;
-    int measurersCount = 0;
 
     // Display properties:
     const int DISPLAY_WIDTH = 128;

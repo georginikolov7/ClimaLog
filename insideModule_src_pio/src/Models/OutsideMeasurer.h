@@ -23,32 +23,32 @@ public:
         : Measurer()
     {
     }
-    OutsideMeasurer(const char* name, int indexOfModule, RF24* radio,
+    OutsideMeasurer(const char* name, int index, RF24* radio,
         bool isPluggedIn = false);
     ~OutsideMeasurer();
-   // OutsideMeasurer& operator=(const OutsideMeasurer&);
+    // OutsideMeasurer& operator=(const OutsideMeasurer&);
     bool operator==(OutsideMeasurer& other);
     void setMountingHeight(int newHeight);
-    void heightSetup(Button* setButton, Adafruit_SSD1306* display);
     const char* getOutput() override;
     int getMountingHeight() { return mountingHeight; }
     int getMinHeight() { return MIN_HEIGHT; }
     int getMaxHeight() { return MAX_HEIGHT; }
     const char* getBatteryLevel();
     bool batLevelIsLow();
+    const char* getPowerSource();
     void readValues() override;
 
     const char* getSnowDepth();
 
 private:
-    int indexOfModule = 0;
     RF24* radio;
+    int index=0;
     bool isPluggedIn;
     char snowDepth[10];
     char batteryStatus[15];
     int batteryLevel = 0; // outside module battery level in %
     int mountingHeight = 0; // set mounting height in cm
-
+    char* powerSource;
     const static int MAX_HEIGHT = 110; // maximum mounitng height in cm
     const static int MIN_HEIGHT = 50; // minimal mounting height in cm
     const static int LOW_BATTERY_PERCENTAGE = 30;

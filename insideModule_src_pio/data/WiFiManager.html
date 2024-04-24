@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP WiFi Manager</title>
+    <link rel="stylesheet" href="wifiStyles.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h2>Climalog inside module WiFi setup</h2>
+            <p>Enter the ssid and password of the network you want to connect the module to:</p>
+        </header>
+        <main>
+            <form action="/" method="POST">
+                <p>
+                    <label for="ssid">SSID</label>
+                <p class="incorrect-value">Value cannot be empty!</p>
+                <input type="text" id="ssid" name="ssid"><br>
+                <label for="pass">Password</label>
+                <p class="incorrect-value">Value cannot be empty!</p>
+                <input type="text" id="pass" name="pass"><br>
+
+                <input type="submit" value="Submit" disabled="disabled">
+                </p>
+            </form>
+        </main>
+    </div>
+    <script>
+        const ssidInputElement = document.getElementById('ssid');
+        const passInputElement = document.getElementById('pass');
+        const buttonElement = document.querySelector('input[type=submit]');
+
+        function validateField(field) {
+            const msgPElement = field.previousElementSibling;
+            if (field.value == '' || field.value == null || /^\s*$/.test(field.value)) {
+
+                field.classList.add('incorrect-data');
+                buttonElement.setAttribute('disabled', 'disabled');
+                msgPElement.style.display = 'inline';
+            } else {
+                msgPElement.style.display = 'none';
+                field.classList.remove('incorrect-data');
+                buttonElement.removeAttribute('disabled');
+            }
+        }
+
+        ssidInputElement.addEventListener('input', e => {
+
+            validateField(e.target);
+        });
+        passInputElement.addEventListener('input', e => {
+
+            validateField(e.target);
+        });
+    </script>
+</body>
+
+</html>

@@ -3,6 +3,8 @@ Measurer::Measurer(const char* name)
 {
     this->name = new char[strlen(name)];
     this->name = name;
+    // this->name = new char[200];
+    // strcpy(this->name, name);
 }
 const char* Measurer::getOutput()
 {

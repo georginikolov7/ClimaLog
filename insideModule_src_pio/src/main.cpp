@@ -12,7 +12,6 @@
 // Adding necessary libraries:
 #include <Arduino.h>
 #include <DHT.h>
-#include <EEPROM.h> //used to store settings when power goes down (mounting height of outside module)
 #include <RF24.h>
 #include <SPI.h> //used for communicating with nRF24 radio
 #include <nRF24L01.h>
@@ -32,17 +31,21 @@
 // Services:
 #include "Icons.h"
 #include "Services/HTTPSender.h"
+#include "Services/SpiffsManager.h"
 #include "Services/ValueSelector.h"
 
 // Repos:
-#include "Repos/NetworkRepo.h"
 #include "Repos/OutsideMeasurersRepo.h"
+
 // For sending the data to the web API:
+#include "Helpers/WiFiConnector.h"
+// #include <ArduinoJson.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+
 #include <WiFi.h>
 #include <time.h>
 //-------------------------------------------------------------------------------------------------------------------------------
-
-#define USESERIAL // uncomment to use serial monitor for debugging
 
 // DHT22 Sensor:
 #define INSIDE_DHT_TYPE DHT22
@@ -76,26 +79,27 @@ Button displayButton(DISPLAY_BUTTON_PIN);
 uint8_t receivePipe; // used to store the pipe num where data was received
 RF24 radio(CE_PIN, CS_PIN); // radio object
 
-// Outside modules:
+// Outside modules repo:
+OutsideMeasurersRepo outsideMeasurers(6);
 const int OUTSIDE_MODULES_COUNT = 2; // set the count of the active modules
+#define DEFAULT_MOUNTING_HEIGHT 80 // modules work best when mounted at 80 cm
 // addresses for outside modules (Index+OUTM):
 uint8_t readAddresses[6][6] = {
     "1OUTM", "2OUTM", "3OUTM", "4OUTM", "5OUTM", "6OUTM"
 };
-#define DEFAULT_MOUNTING_HEIGHT 80 // modules work best when mounted at 80 cm
 // Outside measurer instances:
 OutsideMeasurer out1("Out 1", 0, &radio);
-OutsideMeasurer out2("Out 2", 1, &radio, true);
-// OutsideMeasurer repo:
-OutsideMeasurersRepo outsideMeasurers(6);
+OutsideMeasurer out2("Out 2", 1, &radio);
+
+// SPIFFS:
+ISpiffsManager* spiffsManager = new SpiffsManager();
 
 // WiFi:
-const int WIFI_CONNECT_TIME_LIMIT = 40000; // 40 seconds  for connecting
-#define MAX_NETWORKS_COUNT 10
-NetworkRepo networks(MAX_NETWORKS_COUNT);
-WifiNetwork phone("AndroidAPe456", "12345678");
-WifiNetwork dumy1("pesho's wifi", "*******");
-WifiNetwork dumy2("Nokolovi UBMT", "bvnSP0620");
+const char* mDNSName = "climalogsetup";
+const char* ssidPath = "/ssid.txt";
+const char* passPath = "/pass.txt";
+AsyncWebServer server(80);
+WiFiConnector wiFiConnector(spiffsManager, ssidPath, passPath);
 
 // Obtaining the time:
 const char* ntpServer = "pool.ntp.org";
@@ -104,9 +108,8 @@ struct tm lastTime; // used to store the last time when https request was sent
 const long gmtOffset_sec = 7200; // UTC +2 hours id +7200 seconds
 const int daylightOffset_sec = 0; // not summer time
 
-// HTTP:
+// Google apps script:
 const char* hostID = "AKfycby3nkAQKVJ2M6Oo7USsUUVcAEmSNu6NRPp86zZgQFSBUEhfyxwjZn7Erk3E3MQoIdAYiQ"; // the id of the google apps script
-// HttpSender httpSender(hostID);
 
 // Display controller object, used for toggling display mode:
 DisplayController displayController(&display);
@@ -122,12 +125,13 @@ void IRAM_ATTR ISR_SET_BUTTON() { setButton.stateChanged(); }
 void IRAM_ATTR ISR_DISPLAY_BUTTON() { displayButton.stateChanged(); }
 
 //-------------------------------------------------------------------------------------------------------------
-// Functions:
+//@brief - >reads info from spiffs and creates measurers
+void createOutsideMeasurers();
 //@brief -> function that selects outside module and sets its height
 void heightSetup();
 
-//@brief -> function that selects one of the preset wifi networks
-bool selectWifiNetwork();
+//@brief -> function that sets device to wifi acces point and reads setup info from mobile device
+void configWebDevice();
 
 //@Brief: Sets initial settings to nrf24 radio module
 void setupRadio();
@@ -148,44 +152,22 @@ void setup()
     attachInterrupt(SET_BUTTON_PIN, ISR_SET_BUTTON, CHANGE);
     attachInterrupt(DISPLAY_BUTTON_PIN, ISR_DISPLAY_BUTTON, CHANGE);
 
-    // add Measurers to repo :
-    outsideMeasurers.add(out1);
-    outsideMeasurers.add(out2);
-    // Add networks to repo:
-    networks.add(phone);
-    networks.add(dumy1);
-    networks.add(dumy2);
-
     // Initialize I2C comm and display object:
     Wire.begin(I2C_DATA, I2C_CLK, 100000);
     display.begin(SSD1306_SWITCHCAPVCC, DISPLAY_ADDRESS);
     display.defaultSetup();
     display.writeText("Booting...");
 
-    // Init the display controller:
-    displayController.begin(&insideMeasurer, &outsideMeasurers, OUTSIDE_MODULES_COUNT);
-    delay(700);
+    // Start up spiffs:
+    spiffsManager->initSpiffs();
 
-    // Establish Wifi connection/config time settings:
-    selectWifiNetwork();
-    delay(500);
-    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-
-    // Obtain current time:
-    if (!getLocalTime(&currentTime)) {
-#ifdef USESERIAL
-        Serial.println("Failed to obtain time from NTC");
-#endif
-    } else {
-#ifdef USESERIAL
-        Serial.printf("\n%i:%i\n", currentTime.tm_hour, currentTime.tm_min);
-#endif
-    }
-
-    SPI.begin();
+    // Add measurers:
+    outsideMeasurers.add(out1);
+    outsideMeasurers.add(out2);
 
     // EEPROM used to save mounting height
-    EEPROM.begin(OUTSIDE_MODULES_COUNT); // we need to keep one int value (mounting height) for every outside module
+    EEPROM.begin(
+        OUTSIDE_MODULES_COUNT); // we need to keep one int value (mounting height) for every outside module
 
     // Set mounting heights on each outside module:
 #ifdef USESERIAL
@@ -204,10 +186,26 @@ void setup()
 #ifdef USESERIAL
     Serial.println("Stored mounting heights read");
 #endif
+    // config WiFI and web server:
+    configWebDevice();
+    delay(500);
+
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+
+    // Obtain current time:
+    if (!getLocalTime(&currentTime)) {
+        Serial.println("Failed to obtain time from NTC");
+    } else {
+        Serial.printf("\n%i:%i\n", currentTime.tm_hour, currentTime.tm_min);
+    }
+
+    SPI.begin();
+
     insideDHT.begin(); // initialize the inside DHT
     delay(500); // time to start up DHT
     insideMeasurer.readValues();
-
+    // Init the display controller:
+    displayController.begin(&insideMeasurer, &outsideMeasurers);
     displayController.displayData(); // displays first measurer in array (inside measurer by default)
 
     // initialize RF24 radio:
@@ -221,19 +219,18 @@ void setup()
         }
     }
     setupRadio();
-
-// Debugging info:
-#ifdef USESERIAL
-    Serial.println(F("RF24 settings:"));
-    radio.printPrettyDetails();
-    Serial.print(F("Wifi IP Adress: "));
-    Serial.println(WiFi.localIP());
+    // Debugging info:
+    Serial.printf("Outside modules: %i\r\n", outsideMeasurers.getCount());
+    // Serial.println(F("RF24 settings:"));
+    // radio.printPrettyDetails();
     Serial.println(F("Setup is complete!"));
-#endif
+    delay(3000);
+    Serial.println(outsideMeasurers[2].getName());
 }
 
 void loop()
 {
+
     // Check if data is received:
     if (radio.available(&receivePipe)) {
         // receivePipe corresponds to index of outsideMeasurer + 1
@@ -244,6 +241,15 @@ void loop()
         displayController.displayData(); // update values on display
     }
 
+    if (setButton.isShortPressed()) {
+        display.clearDisplay();
+        char output[100] = "";
+        strncat(output, "Host:\n", strlen(output) - 1);
+        strcat(output, mDNSName);
+        strcat(output, ".local");
+
+        display.writeText(output);
+    }
     if (setButton.isLongPressed()) {
         // Enter height setup:
         heightSetup();
@@ -251,8 +257,10 @@ void loop()
 
     // Change WiFi network by longpressing display btn:
     if (displayButton.isLongPressed()) {
-        selectWifiNetwork();
-        displayController.displayData();
+        // Clear wifi credentials and restart device to enter new credentials:
+        spiffsManager->writeToFile(ssidPath, "");
+        spiffsManager->writeToFile(passPath, "");
+        ESP.restart();
     }
 
     // change displayed data if button is pressed:
@@ -273,40 +281,147 @@ void loop()
     }
 
     // Send http request if time has elapsed or it is midnight:
-    if (WiFi.status() == WL_CONNECTED) {
-        if (getLocalTime(&currentTime)) {
-            int elapsedMins = (currentTime.tm_hour * 60 + currentTime.tm_min) - (lastTime.tm_hour * 60 + lastTime.tm_min);
-            if (elapsedMins >= HTTP_SEND_INTERVAL || (currentTime.tm_hour == 0 && lastTime.tm_hour == 23)) {
-                HTTPS_sent = false;
-                lastTime.tm_hour = currentTime.tm_hour;
-                lastTime.tm_min = currentTime.tm_min;
-            }
+    // if (WiFi.status() == WL_CONNECTED) {
+    //     if (getLocalTime(&currentTime)) {
+    //         int elapsedMins = (currentTime.tm_hour * 60 + currentTime.tm_min) - (lastTime.tm_hour * 60 + lastTime.tm_min);
+    //         if (elapsedMins >= HTTP_SEND_INTERVAL || (currentTime.tm_hour == 0 && lastTime.tm_hour == 23)) {
+    //             HTTPS_sent = false;
+    //             lastTime.tm_hour = currentTime.tm_hour;
+    //             lastTime.tm_min = currentTime.tm_min;
+    //         }
 
-            // Send https request:
-            if (!HTTPS_sent) {
-                HttpSender* httpSender = new HttpSender(hostID);
-#ifdef USESERIAL
-                Serial.printf("Sending http request. Current time: %i:%i\n\n",
-                    currentTime.tm_hour, currentTime.tm_min);
-#endif
-                if (httpSender->sendRequest(insideMeasurer, outsideMeasurers)) {
-                    HTTPS_sent = true;
-                }
-                // Clear memory from httpSender
-                delete httpSender;
-            }
-        } else {
-#ifdef USESERIAL
-            Serial.println("Error! Could not get time from ntp server!");
-#endif
-        }
-    } else {
-#ifdef USESERIAL
-        Serial.println("Error! WiFi disconnected!");
-#endif
-    }
+    //         // Send https request:
+    //         if (!HTTPS_sent) {
+    //             HttpSender* httpSender = new HttpSender(hostID);
+
+    //             Serial.printf("Sending http request. Current time: %i:%i\n\n",
+    //                 currentTime.tm_hour, currentTime.tm_min);
+    //             if (httpSender->sendRequest(insideMeasurer, *outsideMeasurers)) {
+    //                 HTTPS_sent = true;
+    //             }
+    //             // Clear memory from httpSender
+    //             delete httpSender;
+    //         }
+    //     } else {
+    //         Serial.println("Error! Could not get time from ntp server!");
+    //     }
+    // } else {
+    //     display.drawBitmap(display.getWidth() - NO_WIFI_WIDTH, BATTERY_INDICATOR_HEIGHT + 5, epd_bitmap_no_wifi, NO_WIFI_WIDTH, NO_WIFI_HEIGHT);
+    // }
 }
 
+// void createOutsideMeasurers()
+// {
+//     JsonDocument doc;
+//     String json;
+//     spiffsManager->readFile(measurersPath, json);
+
+//     Serial.println(json);
+//     DeserializationError error = deserializeJson(doc, json);
+//     if (error) {
+//         Serial.println(error.c_str());
+//     }
+//     // Access the data
+//     for (JsonVariant element : doc.as<JsonArray>()) {
+//         const char* name = element["name"];
+//         int height = element["height"];
+//         const char* power = element["power"];
+//         Serial.println(name);
+//         Serial.println(height);
+//         Serial.println(power);
+
+//         bool isPluggedIn;
+//         if (power == "battery") {
+//             isPluggedIn = true;
+//         } else {
+//             isPluggedIn = false;
+//         }
+//         OutsideMeasurer* measurer = new OutsideMeasurer(name, height, &radio, isPluggedIn);
+//         outsideMeasurers.add(*measurer);
+//         Serial.printf("Count: %i\r\n", outsideMeasurers.getCount());
+//     }
+// }
+//@brief: setup web server callbacks and wifi settings
+void configWebDevice()
+{
+    display.resetDisplay();
+    display.writeText("Connecting to WiFi");
+    // Try to connect WiFi:
+    if (wiFiConnector.connectToWifi()) {
+        // // Start up MDNS:
+        // if (!wiFiConnector.startMDNS(mDNSName)) {
+        //     // TODO
+        // }
+        // // Route for root / web page
+        // server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+        //     request->send(SPIFFS, "/setupPage.html", "text/html", false);
+        // });
+        // server.on("/api/data", HTTP_GET, [](AsyncWebServerRequest* request) {
+        //     // Convert measurers to JSON:
+        //     String json;
+        //     JsonDocument jsonDocument;
+        //     JsonArray jsonArray = jsonDocument.to<JsonArray>();
+        //     for (int i = 0; i < outsideMeasurers.getCount(); i++) {
+        //         OutsideMeasurer& currentMeasurer = outsideMeasurers[i];
+        //         JsonObject obj = jsonArray.add<JsonObject>();
+        //         obj["name"] = currentMeasurer.getName();
+        //         obj["height"] = currentMeasurer.getMountingHeight();
+        //         obj["power"] = currentMeasurer.getPowerSource();
+        //     }
+        //     serializeJson(jsonDocument, json);
+        //     Serial.println(json);
+        //     // Send request:
+        //     request->send(200, "application/json", json);
+        // });
+
+        // server.serveStatic("/", SPIFFS, "/");
+
+        // server.on(
+        //     "/api/data", HTTP_POST, [](AsyncWebServerRequest* request) {}, NULL, [](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+        //         Serial.println((const char*)data);
+        //          //Save json:
+        //          spiffsManager->writeToFile(measurersPath,(const char*)data);
+        //          request->send(200);
+        //     server.end();
+        //     ESP.restart(); });
+    } else {
+        // Put web server into wifi select mode:
+        display.resetDisplay();
+        display.writeText("Open wifi setup\nConsult manual");
+        if (!wiFiConnector.startAP()) {
+            Serial.println("Error occurred! Could not init WiFi AP");
+            display.resetDisplay();
+            display.writeText("Error!");
+        }
+
+        // Get request to main dir returns wifiSetup html page
+        server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+            request->send(SPIFFS, "/WiFiManager.html", "text/html");
+        });
+
+        server.serveStatic("/", SPIFFS, "/");
+
+        server.on("/", HTTP_POST, [](AsyncWebServerRequest* request) {
+            int params = request->params();
+            for (int i = 0; i < params; i++) {
+                AsyncWebParameter* p = request->getParam(i);
+                const char* value = p->value().c_str();
+                if (p->name() == "ssid") {
+                    // Write ssid to flash:
+                    spiffsManager->writeToFile(ssidPath, value);
+                } else if (p->name() == "pass") {
+                    // Write pass to flash:
+                    spiffsManager->writeToFile(passPath, value);
+                }
+            }
+            request->send(200, "text/plain", "SSID and password read successfully. Server is closed. Device will autorestart and connect to wifi!");
+            server.end();
+            delay(2000);
+            ESP.restart();
+        });
+    }
+    server.begin();
+}
 void setupRadio()
 {
     radio.setDataRate(RF24_250KBPS);
@@ -314,16 +429,18 @@ void setupRadio()
     radio.setPayloadSize(sizeof(ReceiveBuffer));
 
     // open a reading pipe for each of the connected outside modules:
-    for (int i = 1; i <= OUTSIDE_MODULES_COUNT; i++) {
+    for (int i = 1; i <= 6; i++) {
         radio.openReadingPipe(i, readAddresses[i - 1]);
     }
-
     // Set radio in read mode:
     radio.startListening();
 }
+
 void heightSetup()
 {
-    // get array holding the names of the modules:
+    Serial.println(outsideMeasurers[0].getName());
+    Serial.println(outsideMeasurers[1].getName());
+    // get array holding the names of the modules :
     char names[OUTSIDE_MODULES_COUNT][200];
     for (int i = 0; i < OUTSIDE_MODULES_COUNT; i++) {
         strcpy(names[i], outsideMeasurers[i].getName());
@@ -334,56 +451,17 @@ void heightSetup()
     int moduleIndex = outsideModuleSelector.selectStringValueFromArray(names, OUTSIDE_MODULES_COUNT, 1);
     // Create value selector to select height:
     ValueSelector vs(&display, &setButton, "height", "cm");
-    outsideMeasurers[moduleIndex].setMountingHeight(
-        vs.selectIntValue(outsideMeasurers[moduleIndex].getMinHeight(), outsideMeasurers[moduleIndex].getMaxHeight(), outsideMeasurers[moduleIndex].getMountingHeight(), 5)); // set the new height
+
+    OutsideMeasurer selectedMeasurer = outsideMeasurers[moduleIndex];
+    selectedMeasurer.setMountingHeight(
+        vs.selectIntValue(selectedMeasurer.getMinHeight(), selectedMeasurer.getMaxHeight(), selectedMeasurer.getMountingHeight(), 5)); // set the new height
+
     displayController.displayData(); // display the standary display output
-#ifdef USESERIAL
     Serial.printf(
         "Module: %i, New height: %i\n", moduleIndex + 1,
-        outsideMeasurers[moduleIndex].getMountingHeight()); // for debugging only
-#endif
+        selectedMeasurer.getMountingHeight()); // for debugging only
 }
 
-bool selectWifiNetwork()
-{
-    WiFi.mode(WIFI_STA); // set esp32 as station
-    ValueSelector vs(&display, &setButton, "LAN"); // select LAN from the saved networks array
-
-    int size = networks.getCount();
-    char namesArray[size][200];
-
-    for (int i = 0; i < size; i++) {
-        strcpy(namesArray[i], networks[i].getSSID());
-    }
-    int index = vs.selectStringValueFromArray(namesArray, size, 1); // get the index of the selected ssid
-    int startTime = millis();
-    char* ssid = (char*)networks[index].getSSID();
-    char* pass = (char*)networks[index].getPassword();
-    WiFi.begin(ssid, pass);
-    // Reconnect WiFi once because it breaks the first time when connecting to
-    // 5GHz LANs
-    delay(1000);
-    WiFi.disconnect();
-    delay(300);
-    WiFi.reconnect();
-
-#ifdef USESERIAL
-    Serial.print(F("Connecting to WiFi."));
-#endif
-    while (WiFi.status() != WL_CONNECTED) {
-#ifdef USESERIAL
-        Serial.print(".");
-#endif
-        delay(100);
-        if (millis() - startTime >= WIFI_CONNECT_TIME_LIMIT) {
-#ifdef USESERIAL
-            Serial.println(F("Couldn't connect to network"));
-#endif
-            return false; // couldn't connect to network
-        }
-    }
-    return true;
-}
 // Brooks was here...
 
 // So was Red.
