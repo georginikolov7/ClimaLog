@@ -9,7 +9,8 @@ OutsideMeasurer::OutsideMeasurer(const char* name, int index,
 {
     this->radio = radio;
     this->isPluggedIn = isPluggedIn;
-    powerSource = new char[11];
+    powerSource = new char[16];
+    powerSource[0] = '\0';
     if (isPluggedIn) {
         batteryLevel = 100;
         strncpy(powerSource, "Plugged in", strlen(powerSource));

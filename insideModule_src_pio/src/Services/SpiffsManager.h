@@ -5,6 +5,7 @@
 #include "ISpiffsManager.h"
 #include "SPIFFS.h"
 class SpiffsManager : public ISpiffsManager {
+public:
     bool initSpiffs() override;
     bool readFile(const char* path, String& output) override;
     bool writeToFile(const char* path, const char* msg) override;

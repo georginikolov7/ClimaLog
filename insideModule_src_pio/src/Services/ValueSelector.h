@@ -16,7 +16,7 @@ private:
     IDisplay* display;
     Button* setButton;
 
-    char* measureUnit;
-    char* keyword;
+    const char* measureUnit;
+    const char* keyword;
 };
 #endif

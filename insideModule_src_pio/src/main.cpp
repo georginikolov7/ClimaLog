@@ -21,7 +21,6 @@
 #include "Models/Button.h"
 #include "Models/InsideMeasurer.h"
 #include "Models/OutsideMeasurer.h"
-#include "Models/WifiNetwork.h"
 
 // Display:
 #include "Adafruit_GFX.h"
@@ -39,7 +38,7 @@
 
 // For sending the data to the web API:
 #include "Helpers/WiFiConnector.h"
-// #include <ArduinoJson.h>
+#include <ArduinoJson.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
@@ -80,26 +79,26 @@ uint8_t receivePipe; // used to store the pipe num where data was received
 RF24 radio(CE_PIN, CS_PIN); // radio object
 
 // Outside modules repo:
-OutsideMeasurersRepo outsideMeasurers(6);
+const char* measurersPath = "/measurers.json";
 const int OUTSIDE_MODULES_COUNT = 2; // set the count of the active modules
+OutsideMeasurer out1("Out 1", 0, &radio);
+OutsideMeasurer out2("Out 2", 1, &radio, true);
+OutsideMeasurersRepo outsideMeasurers;
 #define DEFAULT_MOUNTING_HEIGHT 80 // modules work best when mounted at 80 cm
 // addresses for outside modules (Index+OUTM):
 uint8_t readAddresses[6][6] = {
     "1OUTM", "2OUTM", "3OUTM", "4OUTM", "5OUTM", "6OUTM"
 };
-// Outside measurer instances:
-OutsideMeasurer out1("Out 1", 0, &radio);
-OutsideMeasurer out2("Out 2", 1, &radio);
 
 // SPIFFS:
-ISpiffsManager* spiffsManager = new SpiffsManager();
+SpiffsManager spiffsManager;
 
 // WiFi:
 const char* mDNSName = "climalogsetup";
 const char* ssidPath = "/ssid.txt";
 const char* passPath = "/pass.txt";
 AsyncWebServer server(80);
-WiFiConnector wiFiConnector(spiffsManager, ssidPath, passPath);
+WiFiConnector wiFiConnector(&spiffsManager, ssidPath, passPath);
 
 // Obtaining the time:
 const char* ntpServer = "pool.ntp.org";
@@ -159,11 +158,14 @@ void setup()
     display.writeText("Booting...");
 
     // Start up spiffs:
-    spiffsManager->initSpiffs();
+    spiffsManager.initSpiffs();
 
     // Add measurers:
-    outsideMeasurers.add(out1);
-    outsideMeasurers.add(out2);
+    // Outside measurer instances:
+
+    outsideMeasurers.initRepo(6);
+    outsideMeasurers.add(&out1);
+    outsideMeasurers.add(&out2);
 
     // EEPROM used to save mounting height
     EEPROM.begin(
@@ -224,14 +226,13 @@ void setup()
     // Serial.println(F("RF24 settings:"));
     // radio.printPrettyDetails();
     Serial.println(F("Setup is complete!"));
-    delay(3000);
-    Serial.println(outsideMeasurers[2].getName());
+    // delay(3000);
+    // Serial.println((*outsideMeasurers)[1].getName());
 }
 
 void loop()
 {
-
-    // Check if data is received:
+    //     // Check if data is received:
     if (radio.available(&receivePipe)) {
         // receivePipe corresponds to index of outsideMeasurer + 1
         outsideMeasurers[receivePipe - 1].readValues();
@@ -258,8 +259,8 @@ void loop()
     // Change WiFi network by longpressing display btn:
     if (displayButton.isLongPressed()) {
         // Clear wifi credentials and restart device to enter new credentials:
-        spiffsManager->writeToFile(ssidPath, "");
-        spiffsManager->writeToFile(passPath, "");
+        spiffsManager.writeToFile(ssidPath, "");
+        spiffsManager.writeToFile(passPath, "");
         ESP.restart();
     }
 
@@ -281,33 +282,33 @@ void loop()
     }
 
     // Send http request if time has elapsed or it is midnight:
-    // if (WiFi.status() == WL_CONNECTED) {
-    //     if (getLocalTime(&currentTime)) {
-    //         int elapsedMins = (currentTime.tm_hour * 60 + currentTime.tm_min) - (lastTime.tm_hour * 60 + lastTime.tm_min);
-    //         if (elapsedMins >= HTTP_SEND_INTERVAL || (currentTime.tm_hour == 0 && lastTime.tm_hour == 23)) {
-    //             HTTPS_sent = false;
-    //             lastTime.tm_hour = currentTime.tm_hour;
-    //             lastTime.tm_min = currentTime.tm_min;
-    //         }
+    if (WiFi.status() == WL_CONNECTED) {
+        if (getLocalTime(&currentTime)) {
+            int elapsedMins = (currentTime.tm_hour * 60 + currentTime.tm_min) - (lastTime.tm_hour * 60 + lastTime.tm_min);
+            if (elapsedMins >= HTTP_SEND_INTERVAL || (currentTime.tm_hour == 0 && lastTime.tm_hour == 23)) {
+                HTTPS_sent = false;
+                lastTime.tm_hour = currentTime.tm_hour;
+                lastTime.tm_min = currentTime.tm_min;
+            }
 
-    //         // Send https request:
-    //         if (!HTTPS_sent) {
-    //             HttpSender* httpSender = new HttpSender(hostID);
+            // Send https request:
+            if (!HTTPS_sent) {
+                HttpSender* httpSender = new HttpSender(hostID);
 
-    //             Serial.printf("Sending http request. Current time: %i:%i\n\n",
-    //                 currentTime.tm_hour, currentTime.tm_min);
-    //             if (httpSender->sendRequest(insideMeasurer, *outsideMeasurers)) {
-    //                 HTTPS_sent = true;
-    //             }
-    //             // Clear memory from httpSender
-    //             delete httpSender;
-    //         }
-    //     } else {
-    //         Serial.println("Error! Could not get time from ntp server!");
-    //     }
-    // } else {
-    //     display.drawBitmap(display.getWidth() - NO_WIFI_WIDTH, BATTERY_INDICATOR_HEIGHT + 5, epd_bitmap_no_wifi, NO_WIFI_WIDTH, NO_WIFI_HEIGHT);
-    // }
+                Serial.printf("Sending http request. Current time: %i:%i\n\n",
+                    currentTime.tm_hour, currentTime.tm_min);
+                if (httpSender->sendRequest(insideMeasurer, outsideMeasurers)) {
+                    HTTPS_sent = true;
+                }
+                // Clear memory from httpSender
+                delete httpSender;
+            }
+        } else {
+            Serial.println("Error! Could not get time from ntp server!");
+        }
+    } else {
+        display.drawBitmap(display.getWidth() - NO_WIFI_WIDTH, BATTERY_INDICATOR_HEIGHT + 5, epd_bitmap_no_wifi, NO_WIFI_WIDTH, NO_WIFI_HEIGHT);
+    }
 }
 
 // void createOutsideMeasurers()
@@ -348,42 +349,42 @@ void configWebDevice()
     display.writeText("Connecting to WiFi");
     // Try to connect WiFi:
     if (wiFiConnector.connectToWifi()) {
-        // // Start up MDNS:
-        // if (!wiFiConnector.startMDNS(mDNSName)) {
-        //     // TODO
-        // }
-        // // Route for root / web page
-        // server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
-        //     request->send(SPIFFS, "/setupPage.html", "text/html", false);
-        // });
-        // server.on("/api/data", HTTP_GET, [](AsyncWebServerRequest* request) {
-        //     // Convert measurers to JSON:
-        //     String json;
-        //     JsonDocument jsonDocument;
-        //     JsonArray jsonArray = jsonDocument.to<JsonArray>();
-        //     for (int i = 0; i < outsideMeasurers.getCount(); i++) {
-        //         OutsideMeasurer& currentMeasurer = outsideMeasurers[i];
-        //         JsonObject obj = jsonArray.add<JsonObject>();
-        //         obj["name"] = currentMeasurer.getName();
-        //         obj["height"] = currentMeasurer.getMountingHeight();
-        //         obj["power"] = currentMeasurer.getPowerSource();
-        //     }
-        //     serializeJson(jsonDocument, json);
-        //     Serial.println(json);
-        //     // Send request:
-        //     request->send(200, "application/json", json);
-        // });
+        // Start up MDNS:
+        // Route for root / web page
+        server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+            request->send(SPIFFS, "/setupPage.html", "text/html", false);
+        });
+        server.on("/api/data", HTTP_GET, [](AsyncWebServerRequest* request) {
+            // Convert measurers to JSON:
+            String json;
+            JsonDocument jsonDocument;
+            JsonArray jsonArray = jsonDocument.to<JsonArray>();
+            for (int i = 0; i < outsideMeasurers.getCount(); i++) {
+                OutsideMeasurer& currentMeasurer = outsideMeasurers[i];
+                JsonObject obj = jsonArray.add<JsonObject>();
+                obj["name"] = currentMeasurer.getName();
+                obj["height"] = currentMeasurer.getMountingHeight();
+                obj["power"] = currentMeasurer.getPowerSource();
+            }
+            serializeJson(jsonDocument, json);
+            Serial.println(json);
+            // Send request:
+            request->send(200, "application/json", json);
+        });
 
-        // server.serveStatic("/", SPIFFS, "/");
+        server.serveStatic("/", SPIFFS, "/");
 
-        // server.on(
-        //     "/api/data", HTTP_POST, [](AsyncWebServerRequest* request) {}, NULL, [](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
-        //         Serial.println((const char*)data);
-        //          //Save json:
-        //          spiffsManager->writeToFile(measurersPath,(const char*)data);
-        //          request->send(200);
-        //     server.end();
-        //     ESP.restart(); });
+        server.on(
+            "/api/data", HTTP_POST, [](AsyncWebServerRequest* request) {}, NULL, [](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+                Serial.println((const char*)data);
+                 //Save json:
+                 spiffsManager.writeToFile(measurersPath,(const char*)data);
+                 request->send(200);
+                 display.resetDisplay();
+                 display.writeText("Not functional yet!");
+                 delay(2000);
+            server.end();
+            ESP.restart(); });
     } else {
         // Put web server into wifi select mode:
         display.resetDisplay();
@@ -405,13 +406,13 @@ void configWebDevice()
             int params = request->params();
             for (int i = 0; i < params; i++) {
                 AsyncWebParameter* p = request->getParam(i);
-                const char* value = p->value().c_str();
+                String value = p->value();
                 if (p->name() == "ssid") {
                     // Write ssid to flash:
-                    spiffsManager->writeToFile(ssidPath, value);
+                    spiffsManager.writeToFile(ssidPath, value.c_str());
                 } else if (p->name() == "pass") {
                     // Write pass to flash:
-                    spiffsManager->writeToFile(passPath, value);
+                    spiffsManager.writeToFile(passPath, value.c_str());
                 }
             }
             request->send(200, "text/plain", "SSID and password read successfully. Server is closed. Device will autorestart and connect to wifi!");
@@ -419,6 +420,10 @@ void configWebDevice()
             delay(2000);
             ESP.restart();
         });
+    }
+    // Start mDNS:
+    if (!wiFiConnector.startMDNS(mDNSName)) {
+        // TODO
     }
     server.begin();
 }

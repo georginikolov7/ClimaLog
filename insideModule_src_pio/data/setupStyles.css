@@ -1,0 +1,123 @@
+/* CSS for basic layout */
+* {
+    font: 14px/1.5 Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+h2 {
+    font-size: 1.7em;
+    font-weight: bold;
+}
+
+h3 {
+    font-size: 1.5em;
+}
+
+body {
+    margin: 0;
+    padding: 1em;
+}
+
+header {
+    background-color: #333;
+    color: white;
+    padding: 1.2em;
+}
+
+header h2 {
+    text-align: center;
+}
+
+.button-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+main {
+    padding: 20px;
+}
+
+#modules-data {
+    justify-content: center;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5em;
+}
+
+.module-data {
+    position: relative;
+    max-width: 430px;
+    border: 1px solid #ccc;
+    padding: 1.2em;
+    margin-bottom: 10px;
+}
+
+.module-data h3 {
+    font-weight: bold;
+    /* padding: 1em 0 1em 0.5em; */
+}
+
+.module-data button {
+    position: absolute;
+    top: 1em;
+    right: 1.2em;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+    width: 100%;
+    padding: 8px;
+    margin: 5px 0;
+    margin-bottom: 1em;
+    box-sizing: border-box;
+}
+
+button {
+    padding: 8px 15px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+
+/* CSS for responsive design */
+@media (min-width:600px) {
+    * {
+        font-size: 18px;
+    }
+
+    #modules-data {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: left;
+    }
+}
+
+
+/* CSS for more specific styling */
+input[type="text"].incorrect-data {
+    border-color: red;
+}
+
+button#add,
+button#submit {
+    font-size: 1.4em;
+    margin: 20px 0;
+}
+
+.delete-btn {
+    margin-left: 10px;
+    background-color: #f44336;
+}
+
+.delete-btn:hover {
+    background-color: #da190b;
+}

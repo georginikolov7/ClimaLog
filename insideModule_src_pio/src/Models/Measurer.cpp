@@ -1,10 +1,10 @@
 #include "Measurer.h"
 Measurer::Measurer(const char* name)
 {
-    this->name = new char[strlen(name)];
+    // this->name = new char[strlen(name)];
+    // this->name = name;
+    //this->name = new char[200];
     this->name = name;
-    // this->name = new char[200];
-    // strcpy(this->name, name);
 }
 const char* Measurer::getOutput()
 {
@@ -37,5 +37,5 @@ const char* Measurer::getHumidity()
 Measurer::~Measurer()
 {
     delete[] output;
-    delete[] name;
+    //delete[] name;
 }

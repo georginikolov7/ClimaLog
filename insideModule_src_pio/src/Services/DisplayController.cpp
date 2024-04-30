@@ -15,7 +15,6 @@ void DisplayController::begin(InsideMeasurer* insideMeasurer, OutsideMeasurersRe
 {
     this->insideMeasurer = insideMeasurer;
     this->outsideMeasurers = outsideMeasurers;
-    const int measurersCount = outsideMeasurers->getCount() + 1;
     ready = true;
 }
 DisplayController::~DisplayController()
@@ -35,14 +34,16 @@ void DisplayController::changeDisplayMode()
 
 void DisplayController::displayData()
 {
-    Serial.printf("Current index: %i\r\n", index);
-    if (!ready || index >= outsideMeasurers->getCount()+1) {
+    //Serial.printf("Current index: %i\r\n", index);
+    //Serial.printf("Current count: %i\r\n", outsideMeasurers->getCount());
+    if (!ready || index >= outsideMeasurers->getCount() + 1) {
         return;
     }
     display->resetDisplay();
     if (index == 0) {
         display->writeText(insideMeasurer->getOutput());
     } else {
+
         display->writeText((*outsideMeasurers)[index - 1].getOutput());
         if ((*outsideMeasurers)[index - 1].batLevelIsLow()) {
             // size of outsideMeasurers array is measurers size - 1 => index is iterator - 1

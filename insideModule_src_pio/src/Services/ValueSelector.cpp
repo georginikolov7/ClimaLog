@@ -5,17 +5,19 @@ ValueSelector::ValueSelector(IDisplay* display, Button* setButton, const char* k
 {
     this->display = display;
     this->setButton = setButton;
-    int keywordLength = strlen(keyword);
-    this->keyword = new char[keywordLength + 1];
-    std::strcpy(this->keyword, keyword);
-    int measureUnitLength = strlen(measureUnit);
-    this->measureUnit = new char[measureUnitLength + 1];
-    std::strcpy(this->measureUnit, measureUnit);
+    this->keyword = keyword;
+    this->measureUnit = measureUnit;
+    // int keywordLength = strlen(keyword);
+    // this->keyword = new char[keywordLength + 1];
+    // std::strcpy(this->keyword, keyword);
+    // int measureUnitLength = strlen(measureUnit);
+    // this->measureUnit = new char[measureUnitLength + 1];
+    // std::strcpy(this->measureUnit, measureUnit);
 }
 ValueSelector::~ValueSelector()
 {
-    delete[] keyword;
-    delete[] measureUnit;
+    // delete[] keyword;
+    // delete[] measureUnit;
 }
 
 int ValueSelector::selectIntValue(int minValue, int maxValue, int startValue, int incrementValue)
@@ -87,7 +89,7 @@ int ValueSelector::selectStringValueFromArray(char array[][200], int arraySize, 
                 display->writeText(text_noValue);
                 isOn = false;
                 delay(10);
-            } else {          
+            } else {
                 display->resetDisplay();
                 display->writeText(text_value);
                 isOn = true;

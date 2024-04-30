@@ -2,23 +2,29 @@
 
 OutsideMeasurersRepo::~OutsideMeasurersRepo()
 {
+    for (int i = 0; i < count; i++) {
+        delete &array[i];
+    }
     delete[] array;
 }
 
-OutsideMeasurersRepo::OutsideMeasurersRepo(int maxSize)
+void OutsideMeasurersRepo::initRepo(int maxSize)
 {
     if (maxSize <= 0) {
         Serial.println("Size cannot be negative!");
         this->maxSize = DEFAULT_MAX_LENGTH;
     } else {
         this->maxSize = maxSize;
-        // Instantialize array:
-        array = new OutsideMeasurer[maxSize];
     }
+    // Instantialize array:
+    array = new OutsideMeasurer*[maxSize];
+    ready = true;
 }
-
-StatusCode OutsideMeasurersRepo::add(OutsideMeasurer& measurer)
+StatusCode OutsideMeasurersRepo::add(OutsideMeasurer* measurer)
 {
+    if (!ready) {
+        return StatusCode::NotInitialized;
+    }
     if (getIndex(measurer) != -1) {
         Serial.println("Item already added to array");
         return StatusCode::ItemAlreadyAdded;
@@ -32,11 +38,15 @@ StatusCode OutsideMeasurersRepo::add(OutsideMeasurer& measurer)
     // Increment the count:
     count++;
     Serial.println("added measurer to repo");
+    Serial.printf("Current count: %i\r\n", count);
     return StatusCode::NoError;
 }
 StatusCode OutsideMeasurersRepo::remove(OutsideMeasurer& refMeasurer)
 {
-    int elementIndex = getIndex(refMeasurer);
+    if (!ready) {
+        return StatusCode::NotInitialized;
+    }
+    int elementIndex = getIndex(&refMeasurer);
     if (elementIndex != -1) {
         shiftLeft(elementIndex);
         count--;
@@ -51,21 +61,25 @@ const int OutsideMeasurersRepo::getCount() const
 {
     return count;
 }
-const OutsideMeasurer* OutsideMeasurersRepo::getElements() const
-{
-    return array;
-}
+// const OutsideMeasurer* OutsideMeasurersRepo::getElements() const
+// {
+//     return array;
+// }
 OutsideMeasurer& OutsideMeasurersRepo::operator[](size_t index) const
 {
+
     static OutsideMeasurer dummy;
-    if (index < 0 || index >= count) {
+    if (index < 0 || index >= count || !ready) {
         Serial.println("Index out of range");
         return dummy;
     }
-    return array[index];
+    return *array[index];
 }
-int OutsideMeasurersRepo::getIndex(OutsideMeasurer& measurer)
+int OutsideMeasurersRepo::getIndex(OutsideMeasurer* measurer)
 {
+    if (!ready) {
+        return -1;
+    }
     int index = -1;
     for (int i = 0; i < count; i++) {
         if (array[i] == measurer) {
@@ -88,5 +102,5 @@ void OutsideMeasurersRepo::shiftLeft(int startIndex)
     }
 
     // Clear the last element:
-    array[count - 1] = OutsideMeasurer();
+    array[count - 1] = nullptr;
 }

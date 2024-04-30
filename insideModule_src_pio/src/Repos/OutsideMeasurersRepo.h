@@ -5,18 +5,20 @@
 class OutsideMeasurersRepo : public IRepo<OutsideMeasurer> {
 public:
     ~OutsideMeasurersRepo();
-    OutsideMeasurersRepo(int maxSize);
-    StatusCode add(OutsideMeasurer& item) override;
+    OutsideMeasurersRepo() = default;
+    void initRepo(int maxSize) override;
+    StatusCode add(OutsideMeasurer* item) override;
     StatusCode remove(OutsideMeasurer& refItem) override;
-    const OutsideMeasurer* getElements() const override;
+    // const OutsideMeasurer* getElements() const override;
     OutsideMeasurer& operator[](size_t index) const override;
     const int getCount() const override;
 
 private:
-    OutsideMeasurer* array;
+    bool ready = false;
+    OutsideMeasurer** array;
     int count = 0;
     int maxSize = 0;
-    int getIndex(OutsideMeasurer& measurer);
+    int getIndex(OutsideMeasurer* measurer);
     void shiftLeft(int startIndex);
     const int DEFAULT_MAX_LENGTH = 10;
 };
