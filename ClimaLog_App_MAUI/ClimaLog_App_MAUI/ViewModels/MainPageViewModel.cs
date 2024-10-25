@@ -18,8 +18,7 @@ namespace ClimaLog_App_MAUI.ViewModels
         public MainPageViewModel(MeasurerService measurerService)
         {
             this.measurerService = measurerService;
-            RefreshCommand = new Command(ExecuteRefreshCommand);
-            GetMeasurersAsync();
+
         }
         public DateTime ReceiveDate
         {
@@ -31,7 +30,6 @@ namespace ClimaLog_App_MAUI.ViewModels
             }
         }
         public ObservableCollection<IMeasurer> Measurers { get; } = new();
-        public ICommand RefreshCommand { get; }
         public bool IsRefreshing
         {
             get => isRefreshing;
@@ -69,10 +67,9 @@ namespace ClimaLog_App_MAUI.ViewModels
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
-        public Command GetMeasurersDataCommand { get; }
 
         [RelayCommand]
-        async Task GetMeasurersAsync()
+        public async Task GetMeasurersAsync()
         {
             IsDataVisible = false;
             if (isBusy)
@@ -107,10 +104,10 @@ namespace ClimaLog_App_MAUI.ViewModels
             }
 
         }
-
-        void ExecuteRefreshCommand()
+        [RelayCommand]
+        public async Task Refresh()
         {
-            GetMeasurersAsync();
+            await GetMeasurersAsync();
         }
     }
 }

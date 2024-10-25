@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ClimaLog_App_MAUI</name>
+    </assembly>
+    <members>
+        <member name="T:ClimaLog_App_MAUI.ViewModels.MainPageViewModel">
+            <inheritdoc/>
+            <inheritdoc/>
+        </member>
+        <member name="F:ClimaLog_App_MAUI.ViewModels.MainPageViewModel.getMeasurersCommand">
+            <summary>The backing field for <see cref="P:ClimaLog_App_MAUI.ViewModels.MainPageViewModel.GetMeasurersCommand"/>.</summary>
+        </member>
+        <member name="P:ClimaLog_App_MAUI.ViewModels.MainPageViewModel.GetMeasurersCommand">
+            <summary>Gets an <see cref="T:CommunityToolkit.Mvvm.Input.IAsyncRelayCommand"/> instance wrapping <see cref="M:ClimaLog_App_MAUI.ViewModels.MainPageViewModel.GetMeasurersAsync"/>.</summary>
+        </member>
+        <member name="F:ClimaLog_App_MAUI.ViewModels.MainPageViewModel.refreshCommand">
+            <summary>The backing field for <see cref="P:ClimaLog_App_MAUI.ViewModels.MainPageViewModel.RefreshCommand"/>.</summary>
+        </member>
+        <member name="P:ClimaLog_App_MAUI.ViewModels.MainPageViewModel.RefreshCommand">
+            <summary>Gets an <see cref="T:CommunityToolkit.Mvvm.Input.IAsyncRelayCommand"/> instance wrapping <see cref="M:ClimaLog_App_MAUI.ViewModels.MainPageViewModel.Refresh"/>.</summary>
+        </member>
+        <member name="T:ClimaLog_App_MAUI.ViewModels.SettingsViewModel">
+            <inheritdoc/>
+            <inheritdoc/>
+            <inheritdoc/>
+        </member>
+        <member name="F:ClimaLog_App_MAUI.ViewModels.SettingsViewModel.reconnectDeviceCommand">
+            <summary>The backing field for <see cref="P:ClimaLog_App_MAUI.ViewModels.SettingsViewModel.ReconnectDeviceCommand"/>.</summary>
+        </member>
+        <member name="P:ClimaLog_App_MAUI.ViewModels.SettingsViewModel.ReconnectDeviceCommand">
+            <summary>Gets an <see cref="T:CommunityToolkit.Mvvm.Input.IAsyncRelayCommand"/> instance wrapping <see cref="M:ClimaLog_App_MAUI.ViewModels.SettingsViewModel.ReconnectDevice"/>.</summary>
+        </member>
+        <member name="F:ClimaLog_App_MAUI.ViewModels.SettingsViewModel.connectToBleDeviceCommand">
+            <summary>The backing field for <see cref="P:ClimaLog_App_MAUI.ViewModels.SettingsViewModel.ConnectToBleDeviceCommand"/>.</summary>
+        </member>
+        <member name="P:ClimaLog_App_MAUI.ViewModels.SettingsViewModel.ConnectToBleDeviceCommand">
+            <summary>Gets an <see cref="T:CommunityToolkit.Mvvm.Input.IAsyncRelayCommand"/> instance wrapping <see cref="M:ClimaLog_App_MAUI.ViewModels.SettingsViewModel.ConnectToBleDevice"/>.</summary>
+        </member>
+        <member name="F:ClimaLog_App_MAUI.ViewModels.SettingsViewModel.requestBtPermissionCommand">
+            <summary>The backing field for <see cref="P:ClimaLog_App_MAUI.ViewModels.SettingsViewModel.RequestBtPermissionCommand"/>.</summary>
+        </member>
+        <member name="P:ClimaLog_App_MAUI.ViewModels.SettingsViewModel.RequestBtPermissionCommand">
+            <summary>Gets an <see cref="T:CommunityToolkit.Mvvm.Input.IAsyncRelayCommand"/> instance wrapping <see cref="M:ClimaLog_App_MAUI.ViewModels.SettingsViewModel.RequestBtPermission"/>.</summary>
+        </member>
+    </members>
+</doc>

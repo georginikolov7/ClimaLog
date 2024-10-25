@@ -11,7 +11,6 @@
             Text="WORK IN PROGRESS"
             VerticalOptions="Center" 
             HorizontalOptions="Center" />
-        <Button Text="Request permission" Command="{Binding RequestBtCommand}"/>
-        <Button Text="Connect" Command="{Binding ConnectCommand}"/>
+        <Button Text="Connect" Command="{Binding ConnectToBleDeviceCommand}"/>
     </VerticalStackLayout>
 </ContentPage>
