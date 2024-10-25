@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ClimaLog_App_MAUI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+871d06bff503e232baf551168782eac717681fcb")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+9261f84562a7905f18de449c8cfd403f7bd0ec50")]
 [assembly: System.Reflection.AssemblyProductAttribute("ClimaLog_App_MAUI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ClimaLog_App_MAUI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
