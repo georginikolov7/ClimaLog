@@ -1,17 +1,11 @@
 ﻿using ClimaLog_App_MAUI.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Net.Http;
-using System.Net.Http.Json;
 using Newtonsoft.Json;
 using ClimaLog_App_MAUI.Models.Interfaces;
+using ClimaLog_App_MAUI.Services.Interfaces;
 
 namespace ClimaLog_App_MAUI.Services
 {
-    public class MeasurerService
+    public class MeasurerService : IMeasurerService
     {
         private HttpClient httpClient;
         private const string URL = @"https://script.google.com/macros/s/AKfycbzLNMP0ekthwSC75XHSm_SIWzqAxo71Y18XLp1xA2tMTEhDXsM-43s7P0pWbY0X50lo/exec";

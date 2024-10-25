@@ -5,13 +5,13 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:ClimaLog_App_MAUI.View"
     Shell.FlyoutBehavior="Flyout">
-    <FlyoutItem Title="Data page" Icon="">
+    <FlyoutItem Title="Data page">
         <ShellContent
         Title="Last Data"
         ContentTemplate="{DataTemplate local:DataPage}"
         Route="DataPage"/>
     </FlyoutItem>
-    <FlyoutItem Title="Module setup" Icon="">
+    <FlyoutItem Title="Module setup" >
         <ShellContent
         Title="Module setup"
         ContentTemplate="{DataTemplate local:SettingsPage}"

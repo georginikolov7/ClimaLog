@@ -11,3 +11,39 @@ build_property.RootNamespace = ClimaLog_App_MAUI
 build_property.ProjectDir = C:\Users\Test\Documents\GitHub\ClimaLog\ClimaLog_App_MAUI\ClimaLog_App_MAUI\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
+
+[C:/Users/Test/Documents/GitHub/ClimaLog/ClimaLog_App_MAUI/ClimaLog_App_MAUI/App.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClimaLog_App_MAUI.App.xaml
+build_metadata.AdditionalFiles.TargetPath = App.xaml
+build_metadata.AdditionalFiles.RelativePath = App.xaml
+
+[C:/Users/Test/Documents/GitHub/ClimaLog/ClimaLog_App_MAUI/ClimaLog_App_MAUI/AppShell.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClimaLog_App_MAUI.AppShell.xaml
+build_metadata.AdditionalFiles.TargetPath = AppShell.xaml
+build_metadata.AdditionalFiles.RelativePath = AppShell.xaml
+
+[C:/Users/Test/Documents/GitHub/ClimaLog/ClimaLog_App_MAUI/ClimaLog_App_MAUI/Resources/Styles/Colors.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClimaLog_App_MAUI.Resources.Styles.Colors.xaml
+build_metadata.AdditionalFiles.TargetPath = Resources\Styles\Colors.xaml
+build_metadata.AdditionalFiles.RelativePath = Resources\Styles\Colors.xaml
+
+[C:/Users/Test/Documents/GitHub/ClimaLog/ClimaLog_App_MAUI/ClimaLog_App_MAUI/Resources/Styles/Styles.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClimaLog_App_MAUI.Resources.Styles.Styles.xaml
+build_metadata.AdditionalFiles.TargetPath = Resources\Styles\Styles.xaml
+build_metadata.AdditionalFiles.RelativePath = Resources\Styles\Styles.xaml
+
+[C:/Users/Test/Documents/GitHub/ClimaLog/ClimaLog_App_MAUI/ClimaLog_App_MAUI/View/DataPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClimaLog_App_MAUI.View.DataPage.xaml
+build_metadata.AdditionalFiles.TargetPath = View\DataPage.xaml
+build_metadata.AdditionalFiles.RelativePath = View\DataPage.xaml
+
+[C:/Users/Test/Documents/GitHub/ClimaLog/ClimaLog_App_MAUI/ClimaLog_App_MAUI/View/Settings.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = ClimaLog_App_MAUI.View.Settings.xaml
+build_metadata.AdditionalFiles.TargetPath = View\Settings.xaml
+build_metadata.AdditionalFiles.RelativePath = View\Settings.xaml
